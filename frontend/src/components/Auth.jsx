@@ -6,7 +6,7 @@ const Auth = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const API_URL = 'http://localhost:3000/api/auth';
+  const API_URL = import.meta.env.DEV ? 'http://localhost:3000/api/auth' : '/api/auth';
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 

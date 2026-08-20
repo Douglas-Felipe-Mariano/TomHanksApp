@@ -7,7 +7,7 @@ const Catalog = ({ user, onLogout, token }) => {
   const [activeTab, setActiveTab] = useState('all'); // 'all' ou 'favorites'
   const [commentInputs, setCommentInputs] = useState({});
 
-  const API_URL = 'http://localhost:3000/api';
+  const API_URL = import.meta.env.DEV ? 'http://localhost:3000/api' : '/api';
   const headers = {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json'
