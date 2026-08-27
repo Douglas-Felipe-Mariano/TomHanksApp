@@ -94,7 +94,7 @@ const Catalog = ({ user, onLogout, token }) => {
       <nav className="navbar">
         <h1>Tom Hanks Collection</h1>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <span>Olá, {user.nome}</span>
+          <span>Olá, {user.nome} ({user.role || 'usuario'})</span>
           <button className="btn btn-danger" onClick={onLogout}>Sair</button>
         </div>
       </nav>
