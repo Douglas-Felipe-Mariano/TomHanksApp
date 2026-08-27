@@ -1,6 +1,8 @@
-const jwt = require('jsonwebtoken');
+const axios = require('axios');
 
-module.exports = (req, res, next) => {
+const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
+
+module.exports = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
@@ -13,16 +15,28 @@ module.exports = (req, res, next) => {
     return res.status(401).json({ error: 'Erro de Token' });
   }
 
-  const [scheme, token] = parts;
+  const [scheme] = parts;
 
   if (!/^Bearer$/i.test(scheme)) {
     return res.status(401).json({ error: 'Token mal formatado' });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET || 'secret', (err, decoded) => {
-    if (err) return res.status(401).json({ error: 'Token inválido' });
+  try {
+    const response = await axios.get(`${authServiceUrl}/auth/me`, {
+      headers: { authorization: authHeader },
+      validateStatus: () => true,
+    });
 
-    req.userId = decoded.id;
+    if (response.status !== 200 || !response.data?.user) {
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+
+    req.user = response.data.user;
+    req.userId = response.data.user.id;
+    req.userRole = response.data.user.role;
     return next();
-  });
+  } catch (error) {
+    console.error('Erro ao validar token no serviço de autenticação:', error.message);
+    return res.status(503).json({ error: 'Serviço de autenticação indisponível' });
+  }
 };

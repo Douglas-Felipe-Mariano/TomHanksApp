@@ -1,8 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const axios = require('axios');
 
-const authController = require('./src/controllers/authController');
 const moviesController = require('./src/controllers/moviesController');
 const favoritesController = require('./src/controllers/favoritesController');
 const commentsController = require('./src/controllers/commentsController');
@@ -12,12 +12,33 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Rotas públicas
-app.post('/api/auth/register', authController.register);
-app.post('/api/auth/login', authController.login);
+const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
+
+const forwardAuthRequest = async (req, res) => {
+  try {
+    const upstreamPath = `/auth${req.url}`;
+    const response = await axios({
+      method: req.method,
+      url: `${authServiceUrl}${upstreamPath}`,
+      data: req.body,
+      headers: {
+        authorization: req.headers.authorization,
+      },
+      validateStatus: () => true,
+    });
+
+    return res.status(response.status).json(response.data);
+  } catch (error) {
+    console.error('Erro ao encaminhar requisição de autenticação:', error.message);
+    return res.status(503).json({ error: 'Serviço de autenticação indisponível' });
+  }
+};
+
+// Rotas públicas de autenticação, encaminhadas para o microsserviço interno
+app.use('/api/auth', forwardAuthRequest);
 
 // Rotas protegidas
-app.use('/api/*', authMiddleware);
+app.use('/api', authMiddleware);
 
 const path = require('path');
 
