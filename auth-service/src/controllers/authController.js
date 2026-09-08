@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 
 const db = require('../config/database');
 const mailer = require('../config/mailer');
+const logger = require('../utils/logger');
 
 const RESET_TOKEN_MINUTES = Number(process.env.RESET_TOKEN_MINUTES || 30);
 const PUBLIC_APP_URL = (process.env.APP_PUBLIC_URL || 'http://localhost:3000').replace(/\/$/, '');
@@ -80,17 +81,21 @@ exports.login = async (req, res) => {
     const [rows] = await db.execute('SELECT * FROM usuarios WHERE email = ?', [email]);
 
     if (rows.length === 0) {
+      logger.logEvent(email, 'login_falha_usuario_nao_encontrado');
       return res.status(400).json({ error: 'Usuário não encontrado' });
     }
 
     const user = rows[0];
 
     if (!(await bcrypt.compare(senha, user.senha_hash))) {
+      logger.logEvent(user.id, 'login_falha_senha_invalida');
       return res.status(400).json({ error: 'Senha inválida' });
     }
 
     const currentUser = mapUser(user);
     const token = generateToken(currentUser);
+
+    logger.logEvent(user.id, 'login_sucesso');
 
     return res.json({ user: currentUser, token });
   } catch (error) {

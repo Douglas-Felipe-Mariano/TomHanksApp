@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const logger = require('../utils/logger');
 
 exports.addFavorite = async (req, res) => {
   const { tmdb_movie_id, titulo, poster_path } = req.body;
@@ -9,6 +10,7 @@ exports.addFavorite = async (req, res) => {
       'INSERT INTO favoritos (usuario_id, tmdb_movie_id, titulo, poster_path) VALUES (?, ?, ?, ?)',
       [usuario_id, tmdb_movie_id, titulo, poster_path]
     );
+    logger.logEvent(usuario_id, 'adicionar_favorito');
     res.status(201).json({ message: 'Favorito adicionado com sucesso!' });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {

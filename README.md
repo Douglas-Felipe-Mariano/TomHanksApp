@@ -13,10 +13,18 @@ Esta versão continua o catálogo da atividade 2 e separa a autenticação em um
 
 ## Estrutura do projeto
 
-- `backend/`: catálogo, favoritos, comentários e proxy interno para autenticação
+- `backend/`: catálogo, favoritos, comentários, proxy interno para autenticação e agregador de rotas de admin
 - `auth-service/`: microsserviço de autenticação e recuperação de senha
+- `log-service/`: microsserviço de auditoria com persistência em Redis
 - `frontend/`: aplicação web em React (Vite)
 - `database/`: scripts SQL para o MariaDB
+
+## Logs e Auditoria (Redis Streams)
+
+O sistema conta com uma trilha de auditoria para monitorar as ações. 
+- **Persistência**: Utilizamos o **Redis Streams** (`XADD` e `XRANGE`). A escolha do Streams se justifica por ser uma estrutura desenhada nativamente para append-only de eventos ordenados no tempo, o que atende perfeitamente ao caso de uso de auditoria (onde se escreve muito e a ordem é vital), superando a complexidade de gerenciar IDs manuais que uma simples lista (List) exigiria.
+- **Eventos Monitorados**: Sucesso e falha de logins, criação/remoção de favoritos, criação/remoção de comentários (incluindo moderação), e tentativas de acessos negados (Erro 403).
+- **Consulta**: Administradores podem visualizar os logs fazendo uma requisição GET autenticada para `/api/admin/logs`. Usuários comuns recebem 403.
 
 ## Como rodar com Docker Compose
 
@@ -44,13 +52,35 @@ docker compose up -d --build
 2. Copie o host, porta, usuário e senha de SMTP para as variáveis `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` e `SMTP_PASS`.
 3. Ajuste `EMAIL_FROM` se quiser um remetente mais claro no teste.
 
-## Papel de usuário
+## Papel de usuário e Permissões (RBAC)
 
-O serviço já grava `role` em `usuarios` com os valores `usuario` e `admin`. Para demonstrar o papel de administrador, promova um usuário no MariaDB com algo como:
+O controle de acesso baseado em papéis (RBAC) está implementado com os papéis `usuario` e `admin`. 
+
+### Permissões por Papel:
+- **`usuario` (Usuário Comum):**
+  - Autenticar-se (login) e gerenciar sua senha.
+  - Pesquisar filmes no catálogo e ver detalhes.
+  - Adicionar, listar e remover filmes aos **seus próprios** favoritos.
+  - Adicionar comentários e remover **somente os seus próprios** comentários.
+  
+- **`admin` (Administrador):**
+  - Possui todas as permissões do `usuario`.
+  - **Ação Exclusiva de Moderação:** Pode remover o comentário de **qualquer usuário**.
+
+Para demonstrar o papel de administrador, promova um usuário no MariaDB:
 
 ```sql
 UPDATE usuarios SET role = 'admin' WHERE email = 'seu-email@exemplo.com';
 ```
+
+## Padrão de Arquitetura de Autorização (Padrão A ou B?)
+
+**Resposta: Padrão A (Enforcement Centralizado)**
+
+**Justificativa:** Atualmente, nosso microsserviço principal (Catálogo/Backend) recebe os requests autenticados e, por meio do middleware `auth.js`, faz uma chamada de rede (HTTP GET `/auth/me`) para o `auth-service` em *toda* requisição protegida. Isso centraliza a validação e permite revogação/alteração imediata de papéis, configurando claramente o Padrão A.
+
+**O que mudaria se fosse para o Padrão B?**
+Para adotar o Padrão B, o middleware do backend deixaria de fazer a requisição HTTP (`axios.get`) para o `auth-service`. Em vez disso, ele verificaria a validade e a assinatura do JWT localmente (`jwt.verify`) e leria a claim de `role` direto do payload do token. Seria mais rápido (sem latência de rede extra), mas perderíamos a revogação instantânea de um papel, pois a mudança só faria efeito quando o usuário gerasse um novo token (login/refresh).
 
 ## Fluxo de recuperação de senha
 

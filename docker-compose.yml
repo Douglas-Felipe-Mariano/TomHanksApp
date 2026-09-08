@@ -12,10 +12,12 @@ services:
       - DB_PASS=${DB_PASS}
       - DB_NAME=${DB_NAME}
       - AUTH_SERVICE_URL=http://auth-service:3001
+      - LOG_SERVICE_URL=http://log-service:3002
       - PORT=3000
     restart: unless-stopped
     depends_on:
       - auth-service
+      - log-service
 
   auth-service:
     build:
@@ -35,5 +37,23 @@ services:
       - SMTP_PASS=${SMTP_PASS}
       - EMAIL_FROM=${EMAIL_FROM}
       - RESET_TOKEN_MINUTES=${RESET_TOKEN_MINUTES:-30}
+      - LOG_SERVICE_URL=http://log-service:3002
       - PORT=3001
+    restart: unless-stopped
+    depends_on:
+      - log-service
+
+  log-service:
+    build:
+      context: ./log-service
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - PORT=3002
+    restart: unless-stopped
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
     restart: unless-stopped

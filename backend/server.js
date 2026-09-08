@@ -53,6 +53,24 @@ app.post('/api/comments', commentsController.addComment);
 app.get('/api/comments', commentsController.listComments);
 app.delete('/api/comments/:id', commentsController.removeComment);
 
+const logger = require('./src/utils/logger');
+const logServiceUrl = process.env.LOG_SERVICE_URL || 'http://log-service:3002';
+
+app.get('/api/admin/logs', async (req, res) => {
+  if (req.userRole !== 'admin') {
+    logger.logEvent(req.userId, 'tentativa_negada_403_ver_logs');
+    return res.status(403).json({ error: 'Proibido: Apenas administradores podem ver os logs' });
+  }
+
+  try {
+    const response = await axios.get(`${logServiceUrl}/logs`);
+    res.json(response.data);
+  } catch (error) {
+    console.error('Erro ao buscar logs do log-service:', error.message);
+    res.status(500).json({ error: 'Erro ao consultar log de auditoria' });
+  }
+});
+
 // Serve o frontend estático se estiver no Docker/Produção
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
