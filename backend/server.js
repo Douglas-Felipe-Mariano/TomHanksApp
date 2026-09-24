@@ -63,7 +63,9 @@ app.get('/api/admin/logs', async (req, res) => {
   }
 
   try {
-    const response = await axios.get(`${logServiceUrl}/logs`);
+    const requestedLimit = Number.parseInt(req.query.limit, 10);
+    const limit = Number.isInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 500) : 50;
+    const response = await axios.get(`${logServiceUrl}/logs`, { params: { limit } });
     res.json(response.data);
   } catch (error) {
     console.error('Erro ao buscar logs do log-service:', error.message);

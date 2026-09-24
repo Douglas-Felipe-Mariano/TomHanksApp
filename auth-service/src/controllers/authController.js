@@ -108,6 +108,11 @@ exports.me = async (req, res) => {
   return res.json({ user: req.user });
 };
 
+exports.logout = async (req, res) => {
+  await logger.logEvent(req.user.id, 'logout');
+  return res.json({ message: 'Logout registrado' });
+};
+
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
 

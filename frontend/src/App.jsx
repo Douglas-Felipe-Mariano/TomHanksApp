@@ -15,11 +15,25 @@ function App() {
     setUser(userData);
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setToken(null);
-    setUser(null);
+  const logout = async () => {
+    const API_URL = import.meta.env.DEV ? 'http://localhost:3000/api/auth' : '/api/auth';
+    const currentToken = localStorage.getItem('token');
+
+    try {
+      if (currentToken) {
+        await fetch(`${API_URL}/logout`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${currentToken}` },
+        });
+      }
+    } catch (error) {
+      console.error('Não foi possível registrar o logout:', error);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setToken(null);
+      setUser(null);
+    }
   };
 
   return (

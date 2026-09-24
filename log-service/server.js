@@ -35,10 +35,12 @@ app.post('/logs', async (req, res) => {
 
 app.get('/logs', async (req, res) => {
   try {
-    // Busca os logs do stream. O '-' significa o começo e '+' o fim.
-    const results = await redisClient.xRange(STREAM_KEY, '-', '+');
+    const requestedLimit = Number.parseInt(req.query.limit, 10);
+    const limit = Number.isInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 500) : 50;
+    // Busca somente os eventos mais recentes, do mais novo para o mais antigo.
+    const results = await redisClient.xRevRange(STREAM_KEY, '+', '-', { COUNT: limit });
     
-    // Retorna os mais recentes primeiro limitando a 50
+    // Retorna os eventos mais recentes primeiro, respeitando o limite solicitado.
     const logs = results.map(entry => {
       return {
         id: entry.id,
@@ -46,7 +48,7 @@ app.get('/logs', async (req, res) => {
         acao: entry.message.acao,
         timestamp: entry.message.timestamp
       };
-    }).reverse().slice(0, 50); 
+    });
     
     res.json(logs);
   } catch (error) {

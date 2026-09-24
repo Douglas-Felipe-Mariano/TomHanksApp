@@ -23,8 +23,26 @@ Esta versão continua o catálogo da atividade 2 e separa a autenticação em um
 
 O sistema conta com uma trilha de auditoria para monitorar as ações. 
 - **Persistência**: Utilizamos o **Redis Streams** (`XADD` e `XRANGE`). A escolha do Streams se justifica por ser uma estrutura desenhada nativamente para append-only de eventos ordenados no tempo, o que atende perfeitamente ao caso de uso de auditoria (onde se escreve muito e a ordem é vital), superando a complexidade de gerenciar IDs manuais que uma simples lista (List) exigiria.
-- **Eventos Monitorados**: Sucesso e falha de logins, criação/remoção de favoritos, criação/remoção de comentários (incluindo moderação), e tentativas de acessos negados (Erro 403).
-- **Consulta**: Administradores podem visualizar os logs fazendo uma requisição GET autenticada para `/api/admin/logs`. Usuários comuns recebem 403.
+- **Eventos Monitorados**: Login (sucesso e falha), logout, criação/remoção de favoritos, criação/remoção de comentários (incluindo moderação) e tentativas de ações negadas por permissão (HTTP 403).
+- **Consulta**: Administradores podem visualizar os últimos eventos com `GET /api/admin/logs?limit=50`, autenticado com Bearer token. O parâmetro `limit` aceita de 1 a 500 (padrão 50); os eventos são devolvidos do mais recente para o mais antigo. Usuários comuns recebem 403.
+- **Rede**: somente o container `app` publica porta no host. `auth-service`, `log-service` e Redis são acessíveis pela rede interna do Docker Compose.
+
+### Roteiro de demonstração
+
+1. Inicie os serviços com `docker compose up -d --build` e crie/promova uma conta administradora conforme a seção de RBAC abaixo.
+2. Entre no frontend com uma conta comum, favorite um filme e publique um comentário.
+3. Para demonstrar uma negação por permissão, com a conta comum tente apagar um comentário pertencente a outro usuário. A API deve responder `403` e registrar `tentativa_negada_403_apagar_comentario`.
+4. Use **Sair** no frontend. O sistema chama `POST /api/auth/logout` antes de limpar a sessão e registra `logout` no stream.
+5. Entre com a conta admin e consulte `GET /api/admin/logs?limit=50` usando o token dessa conta. A consulta mostra `usuario_id`, `acao` e `timestamp`; como vem em ordem mais recente primeiro, o login admin aparece no topo, seguido pelos eventos anteriores.
+6. Tente a mesma consulta usando uma conta comum: deve receber HTTP `403`.
+
+Exemplo de consulta da demonstração (substitua o token pelo JWT de uma conta admin):
+
+```bash
+curl -H "Authorization: Bearer SEU_TOKEN_ADMIN" "http://localhost:3000/api/admin/logs?limit=50"
+```
+
+Após executar o roteiro, capture a resposta JSON da consulta autenticada como admin no terminal ou no navegador e anexe a captura de tela à entrega. A captura depende de uma execução local com usuários e dados reais; ela não é simulada neste repositório.
 
 ## Como rodar com Docker Compose
 

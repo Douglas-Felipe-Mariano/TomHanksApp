@@ -12,6 +12,7 @@ app.use(express.json());
 
 app.post('/auth/register', authController.register);
 app.post('/auth/login', authController.login);
+app.post('/auth/logout', authMiddleware, authController.logout);
 app.post('/auth/forgot-password', authController.forgotPassword);
 app.get('/auth/reset-password/validate', authController.validateResetToken);
 app.post('/auth/reset-password', authController.resetPassword);
