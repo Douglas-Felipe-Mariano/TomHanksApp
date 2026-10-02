@@ -19,6 +19,15 @@ Esta versão continua o catálogo da atividade 2 e separa a autenticação em um
 - `frontend/`: aplicação web em React (Vite)
 - `database/`: scripts SQL para o MariaDB
 
+## Upload e Perfil (MinIO)
+
+Na atividade 6, o catálogo virou uma rede social. Cada usuário tem sua própria página de perfil, que exibe os seus dados e lista seus filmes favoritos.
+
+- **MinIO**: As fotos de perfil não são guardadas no banco de dados, mas sim no MinIO (Object Storage compatível com S3). O banco armazena apenas a URL pública da foto.
+- **Segurança (Edição Própria)**: Apenas o dono do perfil pode alterar sua foto e sua bio. Essa validação ocorre no backend: mesmo que o frontend mande requisição para editar outro ID, o `req.userId` é quem prevalece e um acesso negado retorna HTTP 403.
+- **Decisão sobre visibilidade do Bucket (Leitura Pública vs URL pré-assinada)**:
+  Optamos por configurar o bucket de perfis com **leitura pública** (`publicPolicy`). Como as fotos de perfil são exibidas em vários locais (como avatares em comentários ou listas) e devem carregar instantaneamente, URLs pré-assinadas introduziriam gargalos de performance e processamento desnecessários (precisar gerar a URL na API em toda requisição), além de atrapalhar o cache do navegador. Imagens de avatar de redes sociais geralmente são de natureza pública, o que torna o trade-off pela leitura pública totalmente justificável para este caso.
+
 ## Logs e Auditoria (Redis Streams)
 
 O sistema conta com uma trilha de auditoria para monitorar as ações. 

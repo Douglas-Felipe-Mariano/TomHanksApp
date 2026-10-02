@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Auth from './components/Auth';
 import Catalog from './components/Catalog';
 import ResetPassword from './components/ResetPassword';
+import Profile from './components/Profile';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -48,6 +49,10 @@ function App() {
           <Route 
             path="/" 
             element={token ? <Catalog user={user} onLogout={logout} token={token} /> : <Navigate to="/login" />} 
+          />
+          <Route 
+            path="/profile/:id" 
+            element={token ? <Profile user={user} token={token} /> : <Navigate to="/login" />} 
           />
         </Routes>
       </div>

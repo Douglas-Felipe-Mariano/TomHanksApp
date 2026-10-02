@@ -73,6 +73,12 @@ app.get('/api/admin/logs', async (req, res) => {
   }
 });
 
+const { initMinio } = require('./src/config/minio');
+const profileController = require('./src/controllers/profileController');
+
+app.get('/api/profile/:id', profileController.getProfile);
+app.put('/api/profile/:id', profileController.updateProfile);
+
 // Serve o frontend estático se estiver no Docker/Produção
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
@@ -82,6 +88,24 @@ app.get('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+const pool = require('./src/config/database');
+
+const startServer = async () => {
+  await initMinio();
+  
+  try {
+    // Adiciona as novas colunas à tabela usuários se não existirem
+    // A sintaxe IF NOT EXISTS para colunas requer MariaDB >= 10.6
+    await pool.query('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS bio TEXT');
+    await pool.query('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS foto_perfil VARCHAR(255)');
+    console.log('Migrações de perfil verificadas.');
+  } catch (e) {
+    console.error('Erro na migração de perfil:', e.message);
+  }
+
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+};
+
+startServer();

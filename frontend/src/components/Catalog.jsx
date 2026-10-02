@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 const Catalog = ({ user, onLogout, token }) => {
   const [movies, setMovies] = useState([]);
@@ -95,6 +96,7 @@ const Catalog = ({ user, onLogout, token }) => {
         <h1>Tom Hanks Collection</h1>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <span>Olá, {user.nome} ({user.role || 'usuario'})</span>
+          <Link to={`/profile/${user.id}`} className="btn" style={{ textDecoration: 'none' }}>Meu Perfil</Link>
           <button className="btn btn-danger" onClick={onLogout}>Sair</button>
         </div>
       </nav>
