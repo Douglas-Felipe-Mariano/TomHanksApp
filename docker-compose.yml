@@ -66,8 +66,7 @@ services:
     restart: unless-stopped
 
   minio:
-    image: minio/minio
-    command: server /data --console-address ":9001"
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
     ports:
       - "${MINIO_PORT:-9000}:9000"
       - "9001:9001"
@@ -75,7 +74,7 @@ services:
       - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
     volumes:
-      - minio_data:/data
+      - minio_data:/bitnami/minio/data
     restart: unless-stopped
 
 volumes:
