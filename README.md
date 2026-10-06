@@ -4,6 +4,11 @@ Projeto para a disciplina de Computação em Nuvem lecionada pelo professor @sir
 
 Esta versão continua o catálogo da atividade 2 e separa a autenticação em um microsserviço interno. O catálogo continua sendo o único container com porta pública; login, cadastro, papéis de usuário e recuperação de senha ficam no serviço `auth-service`, acessível somente pela rede interna do Docker.
 
+## Relatório P1
+
+- [Relatório bimestral em PDF](docs/P1_ISW055_Douglas_Mariano.pdf)
+- [Fonte editável em Typst](docs/P1_ISW055_Douglas_Mariano.typ)
+
 ## O que mudou
 
 - `app` continua público e serve o catálogo + frontend.
