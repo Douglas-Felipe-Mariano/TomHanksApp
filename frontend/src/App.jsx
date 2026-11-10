@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Auth from './components/Auth';
-import Catalog from './components/Catalog';
+import ClinicDashboard from './components/ClinicDashboard';
 import ResetPassword from './components/ResetPassword';
-import Profile from './components/Profile';
+import LandingPage from './components/LandingPage';
+import AdminDashboard from './components/AdminDashboard';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -41,19 +42,11 @@ function App() {
     <Router>
       <div className="App">
         <Routes>
-          <Route 
-            path="/login" 
-            element={!token ? <Auth onLogin={login} /> : <Navigate to="/" />} 
-          />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={!token ? <Auth onLogin={login} /> : <Navigate to="/app" />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route 
-            path="/" 
-            element={token ? <Catalog user={user} onLogout={logout} token={token} /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/profile/:id" 
-            element={token ? <Profile user={user} token={token} /> : <Navigate to="/login" />} 
-          />
+          <Route path="/app" element={token ? (user?.role === 'admin' ? <AdminDashboard user={user} onLogout={logout} token={token} /> : <ClinicDashboard user={user} onLogout={logout} token={token} />) : <Navigate to="/login" />} />
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
     </Router>

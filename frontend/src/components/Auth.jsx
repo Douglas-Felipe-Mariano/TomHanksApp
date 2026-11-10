@@ -91,8 +91,8 @@ const Auth = ({ onLogin }) => {
           {mode === 'forgot' && 'Recuperar senha'}
         </h2>
         <p className="helper-text">
-          {mode === 'login' && 'Entre para acessar seus favoritos, comentários e seus papéis de usuário.'}
-          {mode === 'register' && 'Crie sua conta para começar a usar o catálogo.'}
+          {mode === 'login' && 'Entre para organizar os horários e acompanhar seu consultório.'}
+          {mode === 'register' && 'Crie sua conta profissional e configure seu consultório.'}
           {mode === 'forgot' && 'Informe o e-mail para receber o link com expiração de 30 minutos.'}
         </p>
         {error && <div className="error-message">{error}</div>}

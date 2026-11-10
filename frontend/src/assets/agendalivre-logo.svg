@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 224 54" role="img" aria-labelledby="title desc">
+  <title id="title">AgendaLivre</title>
+  <desc id="desc">AgendaLivre — organização leve para consultórios</desc>
+  <rect x="2" y="3" width="48" height="48" rx="15" fill="#7060d7"/>
+  <path d="M15 20.5h15.8a3.7 3.7 0 0 1 3.7 3.7v13.1a3.7 3.7 0 0 1-3.7 3.7H20a3.7 3.7 0 0 1-3.7-3.7V24.2a3.7 3.7 0 0 1 3.7-3.7Z" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"/>
+  <path d="M21 17v6M29 17v6M17 27h17" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="2.5"/>
+  <circle cx="33.5" cy="36.5" r="9.5" fill="#b9efda" stroke="#7060d7" stroke-width="2"/>
+  <path d="M33.5 31.7v5l3.2 2" fill="none" stroke="#40368e" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+  <text x="61" y="34" fill="#282a38" font-family="Manrope, Arial, sans-serif" font-size="23" font-weight="800" letter-spacing="-1.1">Agenda<tspan fill="#7060d7">Livre</tspan></text>
+  <path d="M62 43h117" stroke="#b9efda" stroke-linecap="round" stroke-width="2"/>
+</svg>
