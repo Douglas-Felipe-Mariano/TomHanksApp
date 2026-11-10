@@ -29,7 +29,10 @@ async function migrateDatabase() {
   const usuariosHasRole = await columnExists('usuarios', 'role');
 
   if (!usuariosHasRole) {
-    await db.execute("ALTER TABLE usuarios ADD COLUMN role ENUM('usuario', 'admin') NOT NULL DEFAULT 'usuario'");
+    await db.execute("ALTER TABLE usuarios ADD COLUMN role ENUM('owner', 'reception', 'professional', 'admin', 'usuario') NOT NULL DEFAULT 'owner'");
+  } else {
+    await db.execute("ALTER TABLE usuarios MODIFY COLUMN role ENUM('owner', 'reception', 'professional', 'admin', 'usuario') NOT NULL DEFAULT 'owner'");
+    await db.execute("UPDATE usuarios SET role = 'owner' WHERE role = 'usuario'");
   }
 
   const resetTokensExists = await tableExists('reset_tokens');

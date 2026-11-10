@@ -27,7 +27,7 @@ function mapUser(row) {
     id: row.id,
     nome: row.nome,
     email: row.email,
-    role: row.role || 'usuario',
+    role: row.role === 'usuario' ? 'owner' : (row.role || 'owner'),
   };
 }
 
@@ -37,7 +37,7 @@ async function sendResetEmail(email, token) {
   await mailer.sendMail({
     from: process.env.EMAIL_FROM || process.env.SMTP_USER,
     to: email,
-    subject: 'Recuperação de senha - Tom Hanks App',
+    subject: 'Recuperação de senha - AgendaLivre',
     text: `Recebemos uma solicitação para redefinir sua senha. Use o link abaixo em até ${RESET_TOKEN_MINUTES} minutos:\n${resetLink}\n\nSe você não solicitou isso, ignore esta mensagem.`,
     html: `
       <p>Recebemos uma solicitação para redefinir sua senha.</p>
@@ -61,10 +61,10 @@ exports.register = async (req, res) => {
     const hash = await bcrypt.hash(senha, 10);
     const [result] = await db.execute(
       'INSERT INTO usuarios (nome, email, senha_hash, role) VALUES (?, ?, ?, ?)',
-      [nome, email, hash, 'usuario']
+      [nome, email, hash, 'owner']
     );
 
-    const user = { id: result.insertId, nome, email, role: 'usuario' };
+    const user = { id: result.insertId, nome, email, role: 'owner' };
     const token = generateToken(user);
 
     return res.status(201).json({ user, token });
@@ -105,7 +105,16 @@ exports.login = async (req, res) => {
 };
 
 exports.me = async (req, res) => {
-  return res.json({ user: req.user });
+  try {
+    const [rows] = await db.execute(
+      'SELECT id, nome, email, role FROM usuarios WHERE id = ? LIMIT 1', [req.user.id]
+    );
+    if (!rows.length) return res.status(401).json({ error: 'Conta não encontrada.' });
+    return res.json({ user: mapUser(rows[0]) });
+  } catch (error) {
+    console.error('Erro ao consultar identidade atual:', error.message);
+    return res.status(500).json({ error: 'Não foi possível validar a conta.' });
+  }
 };
 
 exports.logout = async (req, res) => {

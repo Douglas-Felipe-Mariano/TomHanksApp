@@ -3,12 +3,13 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 
-const moviesController = require('./src/controllers/moviesController');
-const favoritesController = require('./src/controllers/favoritesController');
-const commentsController = require('./src/controllers/commentsController');
 const authMiddleware = require('./src/middlewares/auth');
 const billingController = require('./src/controllers/billingController');
 const migratePremium = require('./src/scripts/migratePremium');
+const clinicController = require('./src/controllers/clinicController');
+const migrateClinic = require('./src/scripts/migrateClinic');
+const clinicAccess = require('./src/middlewares/clinicAccess');
+const requireClinicRole = require('./src/middlewares/requireClinicRole');
 
 const app = express();
 app.use(cors());
@@ -16,6 +17,7 @@ app.use(cors());
 // O Stripe exige o corpo original para validar a assinatura do webhook.
 app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), billingController.handleWebhook);
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
 
@@ -41,25 +43,47 @@ const forwardAuthRequest = async (req, res) => {
 
 // Rotas públicas de autenticação, encaminhadas para o microsserviço interno
 app.use('/api/auth', forwardAuthRequest);
+app.get('/api/public/unsubscribe', clinicController.unsubscribe);
+app.post('/api/public/unsubscribe', clinicController.unsubscribe);
 
 // Rotas protegidas
 app.use('/api', authMiddleware);
 
-const path = require('path');
+app.use('/api/clinic', clinicAccess);
+app.get('/api/clinic/dashboard', clinicController.getDashboard);
+app.put('/api/clinic/settings', requireClinicRole('owner'), clinicController.updateClinicSettings);
+app.post('/api/clinic/logo', requireClinicRole('owner'), clinicController.uploadClinicLogo);
+app.get('/api/clinic/members', requireClinicRole('owner'), clinicController.listClinicMembers);
+app.post('/api/clinic/members', requireClinicRole('owner'), clinicController.addClinicMember);
+app.delete('/api/clinic/members/:userId', requireClinicRole('owner'), clinicController.removeClinicMember);
 
-app.get('/api/movies', moviesController.searchMovies);
-app.get('/api/movies/:id/details', moviesController.getMovieDetails);
+app.use('/api/patients', clinicAccess);
+app.get('/api/patients', clinicController.listPatients);
+app.post('/api/patients', requireClinicRole('owner', 'reception'), clinicController.createPatient);
+app.patch('/api/patients/:id/marketing-consent', requireClinicRole('owner', 'reception'), clinicController.updatePatientConsent);
 
-app.post('/api/favorites', favoritesController.addFavorite);
-app.get('/api/favorites', favoritesController.listFavorites);
-app.delete('/api/favorites/:id', favoritesController.removeFavorite);
+app.use('/api/appointments', clinicAccess);
+app.get('/api/appointments', clinicController.listAppointments);
+app.get('/api/appointments/:id', clinicController.getAppointment);
+app.post('/api/appointments', clinicController.createAppointment);
+app.put('/api/appointments/:id', clinicController.updateAppointment);
+app.delete('/api/appointments/:id', clinicController.deleteAppointment);
+app.patch('/api/appointments/:id/status', clinicController.updateAppointmentStatus);
 
-app.post('/api/billing/checkout', billingController.createCheckoutSession);
-app.get('/api/billing/status', billingController.getPremiumStatus);
+app.use('/api/waitlist', clinicAccess);
+app.get('/api/waitlist', clinicController.listWaitlist);
+app.post('/api/waitlist', requireClinicRole('owner', 'reception'), clinicController.addToWaitlist);
+app.patch('/api/waitlist/:id/status', requireClinicRole('owner', 'reception'), clinicController.updateWaitlistStatus);
 
-app.post('/api/comments', commentsController.addComment);
-app.get('/api/comments', commentsController.listComments);
-app.delete('/api/comments/:id', commentsController.removeComment);
+app.use('/api/premium', clinicAccess);
+app.get('/api/premium/reactivation-candidates', clinicController.listReactivationCandidates);
+app.post('/api/premium/campaigns', requireClinicRole('owner'), clinicController.sendCampaign);
+
+app.use('/api/billing', clinicAccess);
+app.post('/api/billing/checkout', requireClinicRole('owner'), billingController.createCheckoutSession);
+app.get('/api/billing/status', requireClinicRole('owner'), billingController.getPremiumStatus);
+app.post('/api/billing/cancel', requireClinicRole('owner'), billingController.cancelPremiumSubscription);
+app.post('/api/billing/portal', requireClinicRole('owner'), billingController.createPortalSession);
 
 const logger = require('./src/utils/logger');
 const logServiceUrl = process.env.LOG_SERVICE_URL || 'http://log-service:3002';
@@ -81,11 +105,16 @@ app.get('/api/admin/logs', async (req, res) => {
   }
 });
 
-const { initMinio } = require('./src/config/minio');
-const profileController = require('./src/controllers/profileController');
+app.get('/api/admin/billing/summary', (req, res, next) => {
+  if (req.userRole !== 'admin') {
+    logger.logEvent(req.userId, 'tentativa_negada_403_metricas_billing');
+    return res.status(403).json({ error: 'Apenas administradores podem consultar métricas de cobrança.' });
+  }
+  return next();
+}, billingController.getAdminBillingSummary);
 
-app.get('/api/profile/:id', profileController.getProfile);
-app.put('/api/profile/:id', profileController.updateProfile);
+const { initMinio } = require('./src/config/minio');
+const path = require('path');
 
 // Serve o frontend estático se estiver no Docker/Produção
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
@@ -96,22 +125,12 @@ app.get('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-const pool = require('./src/config/database');
 
 const startServer = async () => {
   await initMinio();
   await migratePremium();
+  await migrateClinic();
   
-  try {
-    // Adiciona as novas colunas à tabela usuários se não existirem
-    // A sintaxe IF NOT EXISTS para colunas requer MariaDB >= 10.6
-    await pool.query('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS bio TEXT');
-    await pool.query('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS foto_perfil VARCHAR(255)');
-    console.log('Migrações de perfil verificadas.');
-  } catch (e) {
-    console.error('Erro na migração de perfil:', e.message);
-  }
-
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });

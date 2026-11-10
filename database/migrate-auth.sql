@@ -1,5 +1,10 @@
 ALTER TABLE usuarios
-  ADD COLUMN IF NOT EXISTS role ENUM('usuario', 'admin') NOT NULL DEFAULT 'usuario';
+  ADD COLUMN IF NOT EXISTS role ENUM('owner', 'reception', 'professional', 'admin', 'usuario') NOT NULL DEFAULT 'owner';
+
+ALTER TABLE usuarios
+  MODIFY COLUMN role ENUM('owner', 'reception', 'professional', 'admin', 'usuario') NOT NULL DEFAULT 'owner';
+
+UPDATE usuarios SET role = 'owner' WHERE role = 'usuario';
 
 CREATE TABLE IF NOT EXISTS reset_tokens (
   token VARCHAR(128) PRIMARY KEY,

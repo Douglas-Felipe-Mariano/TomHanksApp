@@ -8,7 +8,7 @@ const minioClient = new Minio.Client({
   secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin'
 });
 
-const bucketName = process.env.MINIO_BUCKET_NAME || 'profiles';
+const bucketName = process.env.MINIO_BUCKET_NAME || 'agendalivre-assets';
 
 const initMinio = async () => {
   try {
@@ -17,7 +17,7 @@ const initMinio = async () => {
       await minioClient.makeBucket(bucketName, 'us-east-1');
       console.log(`Bucket '${bucketName}' criado com sucesso.`);
       
-      // Define a política de leitura pública para o bucket
+      // O bucket contém somente logos públicos, nunca dados de pacientes.
       const publicPolicy = {
         Version: '2012-10-17',
         Statement: [
