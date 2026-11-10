@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import logo from '../assets/agendalivre-logo.svg';
 
 const Auth = ({ onLogin }) => {
   const [mode, setMode] = useState('login');
@@ -83,8 +84,12 @@ const Auth = ({ onLogin }) => {
   };
 
   return (
-    <div className="auth-container">
+    <div className="auth-container auth-page">
+      <Link className="auth-brand" to="/" aria-label="AgendaLivre início">
+        <img src={logo} alt="AgendaLivre" />
+      </Link>
       <div className="auth-card">
+        <span className="auth-kicker">AGENDA MAIS LEVE, CONSULTÓRIO MAIS ORGANIZADO</span>
         <h2>
           {mode === 'login' && 'Bem-vindo de volta'}
           {mode === 'register' && 'Criar conta'}
@@ -101,22 +106,22 @@ const Auth = ({ onLogin }) => {
         <form onSubmit={mode === 'forgot' ? (e) => { e.preventDefault(); sendResetLink(); } : handleSubmit}>
           {mode === 'register' && (
             <div className="form-group">
-              <label>Nome</label>
-              <input type="text" name="nome" value={formData.nome} onChange={handleChange} required />
+              <label htmlFor="auth-name">Nome</label>
+              <input id="auth-name" type="text" name="nome" value={formData.nome} onChange={handleChange} autoComplete="name" required />
             </div>
           )}
           <div className="form-group">
-            <label>Email</label>
-            <input type="email" name="email" value={formData.email} onChange={handleChange} required />
+            <label htmlFor="auth-email">E-mail</label>
+            <input id="auth-email" type="email" name="email" value={formData.email} onChange={handleChange} autoComplete="email" required />
           </div>
           {mode !== 'forgot' && (
             <div className="form-group">
-              <label>Senha</label>
-              <input type="password" name="senha" value={formData.senha} onChange={handleChange} required />
+              <label htmlFor="auth-password">Senha</label>
+              <input id="auth-password" type="password" name="senha" value={formData.senha} onChange={handleChange} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} required />
             </div>
           )}
           
-          <button className="btn" type="submit" disabled={loading}>
+          <button className="auth-submit" type="submit" disabled={loading}>
             {loading
               ? 'Aguarde...'
               : mode === 'login'

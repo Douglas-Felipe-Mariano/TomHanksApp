@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import logo from '../assets/agendalivre-logo.svg';
 
 const API_URL = import.meta.env.DEV ? 'http://localhost:3000/api/auth' : '/api/auth';
 
@@ -66,8 +67,12 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="auth-container reset-page">
+    <div className="auth-container auth-page reset-page">
+      <Link className="auth-brand" to="/" aria-label="AgendaLivre início">
+        <img src={logo} alt="AgendaLivre" />
+      </Link>
       <div className="auth-card reset-card">
+        <span className="auth-kicker">ACESSO SEGURO À SUA CONTA</span>
         <h2>Redefinir senha</h2>
         <p className="helper-text">
           Use o link do e-mail para criar uma nova senha.
@@ -91,7 +96,7 @@ const ResetPassword = () => {
               />
             </div>
 
-            <button className="btn" type="submit" disabled={submitting}>
+            <button className="auth-submit" type="submit" disabled={submitting}>
               {submitting ? 'Atualizando...' : 'Trocar senha'}
             </button>
           </form>
