@@ -2,7 +2,21 @@
 
 Projeto para a disciplina de Computação em Nuvem lecionada pelo professor @siriani.
 
-Esta versão continua o catálogo da atividade 2 e separa a autenticação em um microsserviço interno. O catálogo continua sendo o único container com porta pública; login, cadastro, papéis de usuário e recuperação de senha ficam no serviço `auth-service`, acessível somente pela rede interna do Docker.
+Esta versão continua o catálogo da atividade 2 e separa a autenticação em um microsserviço interno. O `app` publica a aplicação; `auth-service`, `log-service` e Redis ficam somente na rede interna do Docker. O Compose também mapeia as portas 9000/9001 do MinIO para o host.
+
+## Documentação do sistema
+
+A especificação funcional, a arquitetura, as regras de negócio extraídas do código e o modelo de dados estão em [DOCUMENTACAO.md](DOCUMENTACAO.md).
+
+## Classificação SaaS, PaaS e IaaS
+
+| Camada | Componentes deste projeto | Responsabilidade |
+| --- | --- | --- |
+| **SaaS** | Tom Hanks App; Stripe; TMDB; Mailtrap | O app é entregue ao usuário pelo navegador. Stripe, TMDB e Mailtrap são serviços de terceiros consumidos por API; Mailtrap é usado para e-mail de desenvolvimento. |
+| **PaaS** | Camada de execução dos containers `app`, `auth-service`, `log-service`, Redis e MinIO, iniciados pelo Docker Compose/Portainer | Em termos didáticos, os containers representam a plataforma de execução da aplicação. Tecnicamente, não há PaaS gerenciado configurado: Docker e runtime continuam sob administração da equipe. |
+| **IaaS** | VM Proxmox/Ubuntu usada pela infraestrutura da disciplina para hospedar Docker e a stack | A equipe administra o sistema operacional, Docker, rede, volumes e implantação dos containers. O contrato/provedor específico da VM não está declarado nos arquivos do repositório. |
+
+O MariaDB é externo ao Docker Compose e configurado por `DB_HOST`, `DB_USER`, `DB_PASS` e `DB_NAME`; sem identificar onde ele é executado, não é possível classificá-lo com segurança como banco gerenciado (PaaS) ou como serviço sobre IaaS. O MinIO e o Redis deste projeto são containers próprios, não SaaS de terceiros.
 
 ## Relatório P1
 
@@ -62,7 +76,7 @@ O sistema conta com uma trilha de auditoria para monitorar as ações.
 - **Persistência**: Utilizamos o **Redis Streams** (`XADD` e `XRANGE`). A escolha do Streams se justifica por ser uma estrutura desenhada nativamente para append-only de eventos ordenados no tempo, o que atende perfeitamente ao caso de uso de auditoria (onde se escreve muito e a ordem é vital), superando a complexidade de gerenciar IDs manuais que uma simples lista (List) exigiria.
 - **Eventos Monitorados**: Login (sucesso e falha), logout, criação/remoção de favoritos, criação/remoção de comentários (incluindo moderação) e tentativas de ações negadas por permissão (HTTP 403).
 - **Consulta**: Administradores podem visualizar os últimos eventos com `GET /api/admin/logs?limit=50`, autenticado com Bearer token. O parâmetro `limit` aceita de 1 a 500 (padrão 50); os eventos são devolvidos do mais recente para o mais antigo. Usuários comuns recebem 403.
-- **Rede**: somente o container `app` publica porta no host. `auth-service`, `log-service` e Redis são acessíveis pela rede interna do Docker Compose.
+- **Rede**: `auth-service`, `log-service` e Redis são acessíveis pela rede interna do Docker Compose. O `app` publica a aplicação; MinIO também mapeia API/console nas portas 9000/9001 do host, conforme `docker-compose.yml`.
 
 ### Roteiro de demonstração
 
@@ -132,10 +146,10 @@ UPDATE usuarios SET role = 'admin' WHERE email = 'seu-email@exemplo.com';
 
 **Resposta: Padrão A (Enforcement Centralizado)**
 
-**Justificativa:** Atualmente, nosso microsserviço principal (Catálogo/Backend) recebe os requests autenticados e, por meio do middleware `auth.js`, faz uma chamada de rede (HTTP GET `/auth/me`) para o `auth-service` em *toda* requisição protegida. Isso centraliza a validação e permite revogação/alteração imediata de papéis, configurando claramente o Padrão A.
+**Justificativa:** Atualmente, o backend faz uma chamada de rede (HTTP GET `/auth/me`) para o `auth-service` em toda requisição protegida, centralizando a validação do JWT (Padrão A). Porém, `/auth/me` devolve as claims do token e não consulta novamente o papel no MariaDB. Assim, a alteração de papel não é imediata para tokens já emitidos: o JWT atual pode permanecer válido por até 24 horas.
 
 **O que mudaria se fosse para o Padrão B?**
-Para adotar o Padrão B, o middleware do backend deixaria de fazer a requisição HTTP (`axios.get`) para o `auth-service`. Em vez disso, ele verificaria a validade e a assinatura do JWT localmente (`jwt.verify`) e leria a claim de `role` direto do payload do token. Seria mais rápido (sem latência de rede extra), mas perderíamos a revogação instantânea de um papel, pois a mudança só faria efeito quando o usuário gerasse um novo token (login/refresh).
+Para adotar o Padrão B, o middleware do backend deixaria de fazer a requisição HTTP (`axios.get`) para o `auth-service`. Em vez disso, verificaria a assinatura do JWT localmente (`jwt.verify`) e leria a claim de `role` do token. Isso reduziria a latência, mas manteria a mesma limitação de atualização do papel até a emissão de outro token; para revogação imediata seria necessário consultar estado atual no banco ou manter uma estratégia de revogação.
 
 ## Fluxo de recuperação de senha
 
