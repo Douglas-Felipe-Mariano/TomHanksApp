@@ -10,6 +10,18 @@ const migratePremium = async () => {
   await pool.query(
     'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS premium_since DATETIME NULL'
   );
+  await pool.query(
+    'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255) NULL UNIQUE'
+  );
+  await pool.query(
+    'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS premium_until DATETIME NULL'
+  );
+  await pool.query(
+    "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(30) NOT NULL DEFAULT 'inactive'"
+  );
+  await pool.query(
+    'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS subscription_amount_cents INT NOT NULL DEFAULT 0'
+  );
   await pool.query(`
     CREATE TABLE IF NOT EXISTS stripe_events (
       event_id VARCHAR(255) PRIMARY KEY,
