@@ -33,6 +33,29 @@ Na atividade 6, o catálogo virou uma rede social. Cada usuário tem sua própri
 - **Decisão sobre visibilidade do Bucket (Leitura Pública vs URL pré-assinada)**:
   Optamos por configurar o bucket de perfis com **leitura pública** (`publicPolicy`). Como as fotos de perfil são exibidas em vários locais (como avatares em comentários ou listas) e devem carregar instantaneamente, URLs pré-assinadas introduziriam gargalos de performance e processamento desnecessários (precisar gerar a URL na API em toda requisição), além de atrapalhar o cache do navegador. Imagens de avatar de redes sociais geralmente são de natureza pública, o que torna o trade-off pela leitura pública totalmente justificável para este caso.
 
+## Plano Premium (Stripe em modo de teste)
+
+O Plano Premium é uma compra única de teste (R$ 9,90 no produto/preço configurado no Stripe). No plano Free, cada conta pode manter até **5 favoritos**; o Premium remove esse limite. A API consulta o plano no MariaDB em cada inclusão, então alterar o estado no navegador não concede o benefício.
+
+- `POST /api/billing/checkout` cria uma sessão hospedada pelo Stripe usando o `STRIPE_PREMIUM_PRICE_ID` configurado no servidor. O preço e o usuário não são aceitos do cliente.
+- `POST /api/billing/webhook` valida a assinatura Stripe sobre o corpo HTTP original. Só um evento `checkout.session.completed` com pagamento confirmado ativa `premium`; a tabela `stripe_events` evita processar o mesmo evento mais de uma vez.
+- `GET /api/billing/status` informa o plano consultado no banco. O retorno do Checkout sozinho não ativa o benefício: a interface aguarda a confirmação do webhook.
+- O banco guarda somente o identificador do cliente Stripe e o estado/data de ativação Premium. Número de cartão, CVV e validade nunca passam pelo app.
+
+### Configurar o Stripe para teste
+
+1. No Dashboard do Stripe, ative **Test mode** e crie o produto `Plano Premium` com preço único de R$ 9,90 (não recorrente). Copie o ID `price_...` desse preço.
+2. Preencha `STRIPE_SECRET_KEY` com uma chave `sk_test_...` e `STRIPE_PREMIUM_PRICE_ID` com o ID criado. O backend recusa chave que não comece com `sk_test_`.
+3. Configure `STRIPE_SUCCESS_URL` e `STRIPE_CANCEL_URL` com as URLs públicas do frontend. Em desenvolvimento com Vite, use `http://localhost:5173/?checkout=success` e `http://localhost:5173/?checkout=cancelled`.
+4. Configure o endpoint de webhook `https://SEU_DOMINIO/api/billing/webhook` no Stripe para o evento `checkout.session.completed`; guarde o segredo `whsec_...` em `STRIPE_WEBHOOK_SECRET`. Para teste local, use o Stripe CLI para encaminhar eventos a `localhost:3000/api/billing/webhook` e use o segredo de listener apresentado pelo CLI.
+5. Copie os nomes/valores de exemplo de `.env.example` para o ambiente local ou para as variáveis da stack no Portainer. Nunca coloque chaves reais no Git.
+
+A migração `database/migrate-premium.sql` pode ser executada manualmente em uma base existente; o backend também verifica/cria essas colunas e a tabela de eventos ao iniciar. Para recriar uma base nova, use `database/create.sql`. O projeto requer MariaDB 10.6 ou superior para `ADD COLUMN IF NOT EXISTS`.
+
+### Verificação da entrega
+
+O cartão de teste do Stripe `4242 4242 4242 4242` simula uma compra aprovada; use uma data futura e qualquer CVC. Depois que o webhook for processado, confira `usuarios.premium = 1`, a disponibilidade de favoritos acima de cinco e a linha correspondente em `stripe_events`. O endpoint administrativo de logs também registra `ativacao_plano_premium`.
+
 ## Logs e Auditoria (Redis Streams)
 
 O sistema conta com uma trilha de auditoria para monitorar as ações. 

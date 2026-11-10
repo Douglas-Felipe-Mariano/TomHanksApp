@@ -4,6 +4,9 @@ CREATE TABLE IF NOT EXISTS usuarios (
   email VARCHAR(150) UNIQUE NOT NULL,
   role ENUM('usuario', 'admin') NOT NULL DEFAULT 'usuario',
   senha_hash VARCHAR(255) NOT NULL,
+  premium TINYINT(1) NOT NULL DEFAULT 0,
+  stripe_customer_id VARCHAR(255) UNIQUE,
+  premium_since DATETIME NULL,
   criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -36,4 +39,10 @@ CREATE TABLE IF NOT EXISTS reset_tokens (
   FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
   INDEX idx_reset_tokens_usuario_id (usuario_id),
   INDEX idx_reset_tokens_expira_em (expira_em)
+);
+
+CREATE TABLE IF NOT EXISTS stripe_events (
+  event_id VARCHAR(255) PRIMARY KEY,
+  event_type VARCHAR(100) NOT NULL,
+  received_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

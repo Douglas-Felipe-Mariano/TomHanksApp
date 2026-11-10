@@ -7,9 +7,14 @@ const moviesController = require('./src/controllers/moviesController');
 const favoritesController = require('./src/controllers/favoritesController');
 const commentsController = require('./src/controllers/commentsController');
 const authMiddleware = require('./src/middlewares/auth');
+const billingController = require('./src/controllers/billingController');
+const migratePremium = require('./src/scripts/migratePremium');
 
 const app = express();
 app.use(cors());
+
+// O Stripe exige o corpo original para validar a assinatura do webhook.
+app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), billingController.handleWebhook);
 app.use(express.json());
 
 const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
@@ -48,6 +53,9 @@ app.get('/api/movies/:id/details', moviesController.getMovieDetails);
 app.post('/api/favorites', favoritesController.addFavorite);
 app.get('/api/favorites', favoritesController.listFavorites);
 app.delete('/api/favorites/:id', favoritesController.removeFavorite);
+
+app.post('/api/billing/checkout', billingController.createCheckoutSession);
+app.get('/api/billing/status', billingController.getPremiumStatus);
 
 app.post('/api/comments', commentsController.addComment);
 app.get('/api/comments', commentsController.listComments);
@@ -92,6 +100,7 @@ const pool = require('./src/config/database');
 
 const startServer = async () => {
   await initMinio();
+  await migratePremium();
   
   try {
     // Adiciona as novas colunas à tabela usuários se não existirem
