@@ -1,14 +1,14 @@
 // ============================================================
 // P2 — Relatório consolidado: arquitetura e atividades
 // ISW055 · Introdução à Computação em Nuvem · Fatec Pompeia · 2026.2
-// Versão: 09/11/2026. Relatório honesto; pendências de evidência estão declaradas.
+// Versão: 10/11/2026. Evidências locais autenticadas adicionadas; pendências externas declaradas.
 // ============================================================
 
 #let aluno = "Douglas Felipe Mariano"
 #let turma = "161_SIST. INTELIGENTES_N"
 #let produto = "AgendaLivre"
 #let repositorio = "https://github.com/Douglas-Felipe-Mariano/TomHanksApp/tree/agendalivre"
-#let data-relatorio = "09/11/2026"
+#let data-relatorio = "10/11/2026"
 #let disciplina = "Introdução à Computação em Nuvem"
 #let codigo = "ISW055"
 #let professor = "Prof. Allan Lincoln Rodrigues Siriani"
@@ -93,9 +93,9 @@ A disciplina de Introdução à Computação em Nuvem aborda a construção e op
 O AgendaLivre busca reduzir o trabalho manual de organizar horários, pacientes e lista de espera. A persona inicial é a profissional de consultório pequeno que hoje combina agenda, planilha e mensagens para preencher cancelamentos. O sistema guarda apenas dados administrativos mínimos; não é prontuário e não deve conter sintomas, diagnósticos ou recomendações clínicas. Este relatório apresenta a arquitetura que pode ser comprovada no repositório, as atividades 7 a 11, suas datas e estados, e as limitações de publicação e evidências que ainda precisam ser resolvidas.
 
 = Metodologia
-A implementação foi inspecionada na branch `agendalivre` do repositório TomHanksApp. As datas e horas dos commits foram extraídas do Git e conferidas no GitHub; para as atividades 9 e 10, também foi consultado o timestamp de criação das issues. Em 09/11/2026, foi iniciado o frontend Vite local e capturadas a landing page e as telas de login, cadastro, recuperação e redefinição de senha. Como o Docker Engine e MariaDB não estavam disponíveis, esses prints registram apenas a interface e a navegação pública; não comprovam login autenticado, CRUD, deploy, Stripe ou integração de backend.
+A implementação foi inspecionada na branch `agendalivre` do repositório TomHanksApp. As datas e horas dos commits foram extraídas do Git e conferidas no GitHub; para as atividades 9 e 10, também foi consultado o timestamp de criação das issues. Em 09/11/2026, além das telas públicas, foram iniciados localmente o frontend Vite, a API e o auth-service. Após autorização explícita da aluna, aplicaram-se as migrações no MariaDB remoto da disciplina e criou-se uma conta de demonstração fictícia, com paciente, agendamentos e lista de espera igualmente sintéticos. Foram exercitados cadastro/login e operações de domínio; a quarta criação de agendamento retornou HTTP 403 pelo limite Free. O Docker Engine não estava disponível; MinIO e Redis/log-service não foram iniciados. No Stripe Test mode, foram criados o produto/preço recorrente e a configuração do Customer Portal, mas não havia chave secreta nem segredo de webhook na configuração local, então checkout, pagamento e webhook não foram executados.
 
-O enunciado da atividade 9 solicita um repositório novo, público e espelhado com todo o histórico, além do backlog. Por decisão de continuidade, o AgendaLivre permaneceu no mesmo repositório, na branch `agendalivre`; essa divergência está explicitada na issue #7 e não é apresentada como requisito cumprido. Não tive acesso verificável ao Portainer, à conta Stripe de teste nem ao banco MariaDB remoto nesta execução. Portanto, capturas de checkout, webhook, limite Free em integração, stack saudável e URL implantada não foram inventadas nem substituídas por imagens ilustrativas.
+O enunciado da atividade 9 solicita um repositório novo, público e espelhado com todo o histórico, além do backlog. Por decisão de continuidade, o AgendaLivre permaneceu no mesmo repositório, na branch `agendalivre`; essa divergência está explicitada na issue #7 e não é apresentada como requisito cumprido. A conta Stripe Test mode e o MariaDB remoto foram acessados para configuração e testes com dados fictícios; o Portainer não foi verificado. Não há checkout, webhook, stack saudável ou URL implantada a comprovar, e nenhuma dessas evidências foi simulada.
 
 = Arquitetura do SaaS
 
@@ -135,7 +135,7 @@ Não há prova disponível nesta execução de qual stack do Portainer está ati
 == Fluxo de assinatura
 O backend cria uma Checkout Session hospedada pelo Stripe com `mode=subscription`, vinculada à conta por `client_reference_id` e metadados. O cartão nunca passa pelo backend. A rota exige o preço `STRIPE_PRO_PRICE_ID` ativo em BRL, mensal e de R\$ 39,90. Na volta do Checkout, o frontend apenas consulta o estado; somente os webhooks validados podem sincronizar a assinatura e conceder Pro.
 
-O webhook usa o corpo bruto e `Stripe-Signature`. Os IDs de evento são gravados em `stripe_events` na mesma transação da alteração do usuário, evitando reaplicar um evento repetido. Estados `active`/`trialing` concedem Pro; cancelamento ou `past_due` retiram o benefício. O endpoint do Customer Portal delega gerenciamento/cancelamento ao Stripe. A configuração efetiva do Dashboard, a entrega dos webhooks e o ciclo Checkout→banco→limite não foram testados com credenciais reais de teste. Eventos fora de ordem do mesmo ID de assinatura ainda podem sobrescrever o estado e são limitação conhecida.
+O webhook usa o corpo bruto e `Stripe-Signature`. Os IDs de evento são gravados em `stripe_events` na mesma transação da alteração do usuário, evitando reaplicar um evento repetido. Estados `active`/`trialing` concedem Pro; cancelamento ou `past_due` retiram o benefício. O endpoint do Customer Portal delega gerenciamento/cancelamento ao Stripe. No Stripe Test mode foi criado o produto AgendaLivre Pro, com preço mensal recorrente em BRL de R\$ 39,90, e salva-se a configuração do portal com retorno para a aplicação local. As capturas comprovam a configuração do catálogo e do portal, não checkout, pagamento ou webhook. A chave secreta e o segredo do webhook não foram configurados na aplicação; logo, o ciclo Checkout→banco→Pro permanece pendente. Eventos fora de ordem do mesmo ID de assinatura ainda podem sobrescrever o estado e são limitação conhecida.
 
 == Modelo de dados do domínio
 As tabelas centrais são `usuarios` (papel global, estado Pro e IDs Stripe), `clinics` (tenant e proprietário), `clinic_members` (vínculo único de equipe por usuário e papel local), `clinic_patients`, `clinic_appointments`, `clinic_waitlist`, `clinic_marketing_sends`, `reset_tokens` e `stripe_events`. As relações e chaves estrangeiras são declaradas em `database/create.sql` e repetidas/adequadas pelas migrações do backend. `clinic_id` liga os dados operacionais ao consultório; `patient_id` liga atendimento/lista de espera ao paciente; `owner_user_id` liga a clínica à conta proprietária.
@@ -179,13 +179,23 @@ O `log-service` usa Redis Streams para eventos e a API administrativa limita o a
   descricao: "Checkout de pagamento hospedado e sincronização do benefício Premium via webhook.",
   planejada: "09/10/2026",
   realizada: "09/11/2026 21:01",
-  situacao: "implementação parcial, com atraso; evidência de integração ausente",
-  evidencia: "Commit 70586a6 e testes automatizados locais. Capturas do checkout concluído, webhook e benefício não disponíveis.",
+  situacao: "implementação parcial, com atraso; produto e portal de teste configurados",
+  evidencia: "Commit 70586a6, testes locais e capturas do produto/Customer Portal no Stripe Test mode. Checkout e webhook pendentes.",
   url: "https://github.com/Douglas-Felipe-Mariano/TomHanksApp/commit/70586a659c9f78db3f5e30f5063f0f41e337f16a",
 )[
-  O commit `70586a6` contém a primeira integração de Checkout Premium com o Stripe e processamento de webhook. O teste local cobre resolução da sessão e regras de elegibilidade; não comprova uma compra de teste executada no Dashboard, uma alteração efetiva no MariaDB ou o benefício em um ambiente publicado. Essa parte foi feita depois da data planejada de 09/10.
+  O commit `70586a6` contém a primeira integração de Checkout Premium com o Stripe e processamento de webhook. O teste local cobre resolução da sessão e regras de elegibilidade. Durante a validação, foi criado no Stripe Test mode o produto AgendaLivre Pro com preço recorrente mensal em BRL de R\$ 39,90 e configurado o Customer Portal; as capturas a seguir documentam essa configuração, não uma cobrança concluída. Essa parte foi feita depois da data planejada de 09/10.
 
-  A pendência é reunir as capturas exigidas pelo enunciado: Checkout de teste concluído e a conta após o webhook, além do benefício funcionando. Elas não foram produzidas nesta execução porque não há acesso configurado ao Stripe e ao MariaDB de teste. A decisão de delegar cartão ao Checkout evita armazenar dados de cartão no produto.
+  A pendência é executar e capturar um Checkout de teste concluído, o webhook recebido e o benefício Pro sincronizado na conta. Não há `STRIPE_SECRET_KEY` nem `STRIPE_WEBHOOK_SECRET` localmente, portanto as capturas de cobrança e ativação não foram produzidas. A decisão de delegar cartão ao Checkout evita armazenar dados de cartão no produto.
+
+  #figure(
+    grid(
+      columns: 2,
+      gutter: 8pt,
+      image("prints/agendalivre-stripe-produto-pro-test-20261110.png", width: 100%),
+      image("prints/agendalivre-stripe-portal-test-20261110.png", width: 100%),
+    ),
+    caption: [Stripe Test mode: produto/preço recorrente e configuração do Customer Portal. Não há assinatura ativa nem pagamento comprovado.],
+  )
 ]
 
 #atividade(
@@ -222,12 +232,40 @@ O `log-service` usa Redis Streams para eventos e a API administrativa limita o a
   planejada: "06/11/2026",
   realizada: "09/11/2026 22:30",
   situacao: "código parcial commitado com atraso; deploy e evidências pendentes",
-  evidencia: "Issues #8 e commits 45ef84a/5b03adc. A URL pública, o 403 integrado, MinIO e logs não foram validados.",
+  evidencia: "Issues #8, commits 45ef84a/5b03adc e capturas autenticadas do painel, agenda, pacientes e lista de espera com dados fictícios. Deploy, MinIO e logs pendentes.",
   url: "https://github.com/Douglas-Felipe-Mariano/TomHanksApp/issues/8",
 )[
-  A branch substitui o catálogo por uma landing page pública, painel de consultório, pacientes, agenda, lista de espera, papéis locais, isolamento por `clinic_id`, eventos e upload de logo. Após harmonizar a identidade visual do login com a landing, o frontend foi iniciado e as telas públicas foram capturadas às 23:03 de 09/11/2026 em Brasília: #link("prints/agendalivre-local-01-landing-20261109-2303.png")[landing], #link("prints/agendalivre-local-02-login-20261109-2303.png")[login], #link("prints/agendalivre-local-03-cadastro-20261109-2303.png")[cadastro], #link("prints/agendalivre-local-04-recuperar-senha-20261109-2303.png")[recuperação] e #link("prints/agendalivre-local-05-reset-sem-token-20261109-2303.png")[redefinição sem token]. São telas observadas no navegador local, não demonstração de operações persistidas. O Docker Engine não estava disponível, não há `.env` nem MariaDB local e o backend não foi iniciado, então não foi possível autenticar, criar registros ou capturar os fluxos protegidos. A issue #8 foi aberta em 09/11/2026 às 22:30, depois do prazo de 06/11, e enumera as validações ainda necessárias.
+  A branch substitui o catálogo por uma landing page pública, painel de consultório, pacientes, agenda, lista de espera, papéis locais, isolamento por `clinic_id`, eventos e upload de logo. As telas públicas iniciais foram capturadas às 23:03 de 09/11/2026 em Brasília: #link("prints/agendalivre-local-01-landing-20261109-2303.png")[landing], #link("prints/agendalivre-local-02-login-20261109-2303.png")[login], #link("prints/agendalivre-local-03-cadastro-20261109-2303.png")[cadastro], #link("prints/agendalivre-local-04-recuperar-senha-20261109-2303.png")[recuperação] e #link("prints/agendalivre-local-05-reset-sem-token-20261109-2303.png")[redefinição sem token]. Em seguida, API e auth-service locais foram conectados ao MariaDB remoto de teste, após autorização, e foi criada uma clínica fictícia com paciente, agendamentos e lista de espera sintéticos. São evidências locais com dados fictícios, não publicação.
 
-  Não tive acesso ao Portainer nem à base MariaDB remota. Portanto, não posso declarar a stack redeployada, os containers saudáveis, o subdomínio atualizado ou os testes de duas contas concluídos. Faltam os prints exigidos da landing no domínio, do 403, dos eventos, do MinIO e do Portainer; o endereço local do navegador não é evidência de publicação.
+  #figure(
+    grid(
+      columns: 2,
+      gutter: 8pt,
+      image("prints/agendalivre-local-06-visao-geral-20261109.png", width: 100%),
+      image("prints/agendalivre-local-07-pacientes-20261109.png", width: 100%),
+    ),
+    caption: [Painel autenticado e cadastro fictício de paciente com consentimento administrativo.],
+  )
+  #figure(
+    grid(
+      columns: 2,
+      gutter: 8pt,
+      image("prints/agendalivre-local-08-agenda-20261109.png", width: 100%),
+      image("prints/agendalivre-local-09-lista-espera-20261109.png", width: 100%),
+    ),
+    caption: [Agenda e lista de espera com registros sintéticos; os horários exibidos não são evidência de validação de fuso horário.],
+  )
+  #figure(
+    grid(
+      columns: 2,
+      gutter: 8pt,
+      image("prints/agendalivre-local-10-recursos-pro-free-20261109.png", width: 100%),
+      image("prints/agendalivre-local-11-limite-free-20261109.png", width: 100%),
+    ),
+    caption: [Recursos Pro exibidos no plano Free e bloqueio após três agendamentos: a API recusou a quarta criação com HTTP 403.],
+  )
+
+  Não tive acesso ao Portainer. Portanto, não posso declarar a stack redeployada, os containers saudáveis, o subdomínio atualizado ou os testes de duas contas concluídos. Faltam os prints de publicação, eventos, MinIO e Portainer; o endereço local do navegador não é evidência de deploy. O Docker Engine não estava disponível e Redis/log-service e MinIO não foram iniciados nesta validação.
 ]
 
 #atividade(
@@ -235,19 +273,19 @@ O `log-service` usa Redis Streams para eventos e a API administrativa limita o a
   descricao: "Planos Free/Pro, assinatura recorrente, webhooks, Customer Portal, limites server-side e MRR admin.",
   planejada: "13/11/2026",
   realizada: "Em andamento — código commitado em 09/11/2026 22:29",
-  situacao: "em andamento; ainda não demonstrada em Stripe/MariaDB de teste",
-  evidencia: "Commit 4660962 e 5 testes locais. Capturas de Checkout, webhook, bloqueio Free e painel admin pendentes.",
+  situacao: "em andamento; limite Free testado e catálogo/portal configurados no Stripe Test mode",
+  evidencia: "Commit 4660962, 5 testes locais, HTTP 403 ao quarto agendamento e capturas de produto/portal Stripe. Checkout, webhook e painel admin pendentes.",
   url: "https://github.com/Douglas-Felipe-Mariano/TomHanksApp/commit/4660962e16826ce41161a848b24c024f4fd152b3",
 )[
-  O código cria Checkout de assinatura com preço mensal fixado no servidor, guarda IDs da assinatura/cliente, valida assinatura dos webhooks, deduplica eventos, sincroniza o plano, expõe o Customer Portal, aplica no backend a franquia Free de três agendamentos e calcula o MRR no painel admin. Os cinco testes unitários de billing passaram localmente. A data planejada de 13/11 ainda não chegou na data desta versão do relatório.
+  O código cria Checkout de assinatura com preço mensal fixado no servidor, guarda IDs da assinatura/cliente, valida assinatura dos webhooks, deduplica eventos, sincroniza o plano, expõe o Customer Portal, aplica no backend a franquia Free de três agendamentos e calcula o MRR no painel admin. Os cinco testes unitários de billing passaram localmente. Na conta fictícia, três agendamentos foram persistidos e a tentativa seguinte foi bloqueada pela API com HTTP 403 e código `PLAN_LIMIT_REACHED`, conforme a captura do limite Free. O produto e o Customer Portal foram criados no Stripe Test mode. A data planejada de 13/11 ainda não chegou na data desta versão do relatório.
 
-  Isso não comprova o cenário ponta a ponta exigido: não há preço, Customer Portal, segredo de webhook, conta de teste ou banco integrado configurados nesta execução. Assim, assinatura com cartão 4242, evento no Stripe, limite bloqueando em conta Free, cancelamento e MRR real continuam pendentes. Não afirmo a atividade como entregue.
+  Isso ainda não comprova a assinatura ponta a ponta: faltam a chave secreta local e o segredo do webhook, portanto não foram executados Checkout, pagamento de teste, entrega de evento, ativação Pro, cancelamento de assinatura ou cálculo de MRR baseado em uma assinatura real de teste. O bloqueio do quarto agendamento é uma validação integrada real do limite Free; não afirmo a atividade como entregue.
 ]
 
 = Considerações finais
 O trabalho deste bimestre mostrou que mudar o domínio de uma aplicação envolve mais do que trocar telas: foi necessário modelar tenants, definir papéis locais, controlar os acessos no servidor e manter o estado de assinatura separado da resposta do navegador. A parte que mais exige cuidado é provar que as integrações e a infraestrutura configurada no código realmente funcionam em conjunto, sem confundir build local ou testes unitários com um deploy real.
 
-Neste momento, o AgendaLivre tem uma base de produto e código funcional localmente, mas este relatório não deve ser tratado como evidência de um SaaS publicado. Para concluir a entrega faltam resolver o requisito de repositório da atividade 9, validar e publicar as atividades 10 e 11 nos serviços da disciplina, anexar capturas originais e atualizar as issues com os resultados. Uma futura versão deve também vincular profissionais por ID, padronizar timezone e tornar a cota de e-mails atômica.
+Neste momento, o AgendaLivre tem fluxos locais de autenticação, CRUD, agenda e limite Free exercitados com dados fictícios no banco de teste autorizado, mas este relatório não deve ser tratado como evidência de um SaaS publicado. Para concluir a entrega faltam resolver o requisito de repositório da atividade 9, validar o ciclo completo Stripe com segredos de teste configurados e publicar as atividades 10 e 11 nos serviços da disciplina. Uma futura versão deve também vincular profissionais por ID, padronizar timezone e tornar a cota de e-mails atômica.
 
 = Declaração de autoria
 Declaro que este relatório foi elaborado por mim, individualmente. As datas de commits, issues e testes citadas são verificáveis nos links informados. As capturas de ambiente externo ainda não disponíveis foram declaradas como pendentes, sem simulação de evidência.

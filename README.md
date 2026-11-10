@@ -4,7 +4,7 @@
 
 Projeto individual da disciplina ISW055 — Introdução à Computação em Nuvem, do professor [@siriani](https://github.com/siriani). A implementação está na [branch agendalivre](https://github.com/Douglas-Felipe-Mariano/TomHanksApp/tree/agendalivre) deste repositório, conforme a decisão de reaproveitar o mesmo repositório. Isso é diferente da exigência de repositório novo publicada na atividade 9; não afirmamos que o fork foi realizado. O [relatório P2 (PDF)](docs/P2_ISW055_Douglas_Mariano.pdf) reúne a arquitetura, as atividades 7–11, as evidências disponíveis e as pendências.
 
-> Estado honesto: issues de acompanhamento foram abertas, mas o código e a documentação desta branch não comprovam que a aplicação foi publicada na VM/subdomínio do curso, que o Stripe foi configurado no Dashboard ou que as integrações externas foram validadas. Essas etapas dependem de acesso à infraestrutura.
+> Estado honesto: a API e o serviço de autenticação foram executados localmente contra o MariaDB remoto de teste autorizado, usando conta e cadastros fictícios. O produto e o Customer Portal foram criados no Stripe Test mode. Ainda não há chave API de teste nem segredo de webhook configurados; portanto, checkout, pagamento, webhook e ativação Pro não foram testados. Docker, Redis/log-service e MinIO não foram iniciados, e não há comprovação de publicação na VM/subdomínio do curso.
 
 ## 1. A dor
 
@@ -148,12 +148,20 @@ No Free, a criação do quarto agendamento do mês é recusada com HTTP 403, có
 
 ## Evidências locais e itens ainda externos ao código
 
-Em 09/11/2026, às 23:03 (Brasília), o frontend Vite foi executado localmente e as telas públicas foram capturadas após alinhar as cores do login à landing. Elas mostram a interface, não autenticação ou operações persistidas:
+Em 09/11/2026, o frontend Vite, API e auth-service foram executados localmente. Após autorização, foram aplicadas as migrações no MariaDB remoto da disciplina e criado um consultório fictício para demonstração; os registros não correspondem a pacientes reais. As telas públicas iniciais mostram somente a interface. As capturas autenticadas demonstram painel, agenda, pacientes, lista de espera, bloqueio Free e a tela de upgrade. As capturas do Stripe mostram configuração no Test mode, não uma cobrança concluída.
 
 - [Landing page](docs/prints/agendalivre-local-01-landing-20261109-2303.png)
 - [Login](docs/prints/agendalivre-local-02-login-20261109-2303.png)
 - [Cadastro](docs/prints/agendalivre-local-03-cadastro-20261109-2303.png)
 - [Recuperação de senha](docs/prints/agendalivre-local-04-recuperar-senha-20261109-2303.png)
 - [Redefinição sem token](docs/prints/agendalivre-local-05-reset-sem-token-20261109-2303.png)
+- [Visão geral do consultório](docs/prints/agendalivre-local-06-visao-geral-20261109.png)
+- [Pacientes e consentimento](docs/prints/agendalivre-local-07-pacientes-20261109.png)
+- [Agenda com registros de demonstração](docs/prints/agendalivre-local-08-agenda-20261109.png)
+- [Lista de espera](docs/prints/agendalivre-local-09-lista-espera-20261109.png)
+- [Recursos Pro no plano Free](docs/prints/agendalivre-local-10-recursos-pro-free-20261109.png)
+- [Franquia Free atingida](docs/prints/agendalivre-local-11-limite-free-20261109.png)
+- [Produto recorrente AgendaLivre Pro no Stripe Test mode](docs/prints/agendalivre-stripe-produto-pro-test-20261110.png)
+- [Configuração do Customer Portal no Stripe Test mode](docs/prints/agendalivre-stripe-portal-test-20261110.png)
 
-O backend e o Docker Engine não foram iniciados nesta execução: não havia `.env`, MariaDB local nem Docker Engine disponível. Portanto, não há prova de login funcional, CRUD, deploy, checkout realmente executado, webhook recebido em conta de teste, eventos ou MinIO integrados. A atividade 9 pede repositório novo; esta branch segue a decisão de manter o mesmo repositório, portanto há uma divergência a resolver com a docente antes de declarar aquela etapa como atendida. Consulte o [relatório P2](docs/P2_ISW055_Douglas_Mariano.pdf) para os estados e limites detalhados.
+O cadastro/login, CRUD de paciente, agenda e lista de espera foram exercitados com uma conta fictícia; a quarta criação de agendamento foi recusada pelo backend com HTTP 403 e `PLAN_LIMIT_REACHED`, após três criações. As migrações alteraram o esquema do banco remoto autorizado, que deve ser apagado ao fim da disciplina. O checkout e webhooks permanecem sem validação por falta de `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET`; Redis/log-service e MinIO também não estavam disponíveis. Não há evidência de deploy. A atividade 9 pede repositório novo; esta branch segue a decisão de manter o mesmo repositório, portanto há uma divergência a resolver com a docente antes de declarar aquela etapa como atendida. Consulte o [relatório P2](docs/P2_ISW055_Douglas_Mariano.pdf) para os estados e limites detalhados.
