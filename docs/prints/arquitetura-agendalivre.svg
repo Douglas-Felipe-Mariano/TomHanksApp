@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#7060d7"/></marker>
+    <marker id="arrowMint" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#4b9b78"/></marker>
+    <style>
+      text{font-family:Arial,sans-serif;fill:#282a38}.title{font-size:29px;font-weight:700}.subtitle{font-size:16px;fill:#707486}.lane{fill:#fff;stroke:#e6e3f2;stroke-width:2}.external{fill:#f2efff;stroke:#e6e3f2;stroke-width:2}.lane-title{font-size:17px;font-weight:700;letter-spacing:1px;fill:#7060d7}.box{fill:#fff;stroke:#7060d7;stroke-width:2;rx:16}.box-green{fill:#f1faf5;stroke:#70b894;stroke-width:2;rx:16}.box-purple{fill:#f5f3ff;stroke:#7060d7;stroke-width:2;rx:16}.box-title{font-size:19px;font-weight:700}.box-sub{font-size:15px;fill:#737789}.edge{fill:none;stroke:#7060d7;stroke-width:3;marker-end:url(#arrow)}.edge-green{fill:none;stroke:#4b9b78;stroke-width:3;marker-end:url(#arrowMint)}.edge-dash{stroke-dasharray:9 7}.label-bg{fill:#fff;stroke:#e6e3f2;stroke-width:1;rx:7}.label{font-size:14px;fill:#5145a6;font-weight:700}.note{font-size:14px;fill:#707486}
+    </style>
+  </defs>
+  <rect width="1200" height="760" rx="24" fill="#faf9ff"/>
+  <text x="48" y="54" class="title">AgendaLivre · arquitetura descrita pelo repositório</text>
+  <text x="48" y="84" class="subtitle">Componentes configurados no código e no Compose; implantação externa não verificada.</text>
+
+  <rect x="40" y="112" width="1120" height="112" rx="18" class="external"/>
+  <text x="62" y="143" class="lane-title">CLIENTE E SERVIÇOS EXTERNOS</text>
+  <rect x="420" y="158" width="220" height="48" class="box-purple"/>
+  <text x="530" y="188" text-anchor="middle" class="box-title">Navegador React</text>
+  <rect x="60" y="158" width="300" height="48" class="box-green"/>
+  <text x="210" y="188" text-anchor="middle" class="box-title">Stripe · Checkout / Portal</text>
+  <rect x="910" y="158" width="220" height="48" class="box-green"/>
+  <text x="1020" y="188" text-anchor="middle" class="box-title">Servidor SMTP</text>
+
+  <rect x="40" y="252" width="820" height="418" rx="18" class="lane"/>
+  <text x="62" y="316" class="lane-title">DOCKER COMPOSE</text>
+
+  <path d="M530 206 V330" class="edge"/>
+  <rect x="540" y="250" width="95" height="27" class="label-bg"/>
+  <text x="587" y="269" text-anchor="middle" class="label">HTTPS /api</text>
+  <path d="M360 182 H390 V300 H460 V330" class="edge-green edge-dash"/>
+  <rect x="310" y="236" width="142" height="27" class="label-bg"/>
+  <text x="381" y="255" text-anchor="middle" class="label">Checkout / Portal</text>
+  <path d="M460 365 H350 V280 H290 V206" class="edge edge-dash"/>
+  <rect x="307" y="273" width="143" height="27" class="label-bg"/>
+  <text x="378" y="292" text-anchor="middle" class="label">webhook assinado</text>
+
+  <rect x="430" y="330" width="340" height="110" class="box-purple"/>
+  <text x="600" y="370" text-anchor="middle" class="box-title">app · Express + SPA</text>
+  <text x="600" y="399" text-anchor="middle" class="box-sub">API · tenant / RBAC · billing</text>
+  <text x="600" y="422" text-anchor="middle" class="box-sub">integrações Stripe, MinIO e SMTP</text>
+
+  <rect x="80" y="350" width="245" height="82" class="box"/>
+  <text x="202" y="383" text-anchor="middle" class="box-title">auth-service</text>
+  <text x="202" y="410" text-anchor="middle" class="box-sub">JWT · identidade e papéis</text>
+  <path d="M430 385 H325" class="edge"/>
+  <rect x="338" y="350" width="82" height="27" class="label-bg"/>
+  <text x="379" y="369" text-anchor="middle" class="label">sessão</text>
+
+  <rect x="940" y="350" width="210" height="110" class="box-purple"/>
+  <text x="1045" y="384" text-anchor="middle" class="box-title">MariaDB</text>
+  <text x="1045" y="411" text-anchor="middle" class="box-sub">externo ao Compose</text>
+  <text x="1045" y="436" text-anchor="middle" class="box-sub">agenda · clínicas · billing</text>
+  <path d="M770 385 H940" class="edge"/>
+  <rect x="803" y="350" width="102" height="27" class="label-bg"/>
+  <text x="854" y="369" text-anchor="middle" class="label">dados</text>
+  <path d="M202 432 V474 H1045 V460" class="edge edge-dash"/>
+  <rect x="525" y="458" width="178" height="27" class="label-bg"/>
+  <text x="614" y="477" text-anchor="middle" class="label">contas e permissões</text>
+
+  <path d="M610 440 V492 H820 V520" class="edge-green"/>
+  <rect x="678" y="464" width="112" height="27" class="label-bg"/>
+  <text x="734" y="483" text-anchor="middle" class="label">upload logo</text>
+  <rect x="720" y="520" width="200" height="82" class="box-green"/>
+  <text x="820" y="554" text-anchor="middle" class="box-title">MinIO</text>
+  <text x="820" y="581" text-anchor="middle" class="box-sub">logos públicos</text>
+
+  <path d="M510 440 V500 H360 V520" class="edge"/>
+  <rect x="393" y="464" width="104" height="27" class="label-bg"/>
+  <text x="445" y="483" text-anchor="middle" class="label">eventos</text>
+  <rect x="260" y="520" width="200" height="82" class="box"/>
+  <text x="360" y="554" text-anchor="middle" class="box-title">log-service</text>
+  <text x="360" y="581" text-anchor="middle" class="box-sub">auditoria</text>
+  <path d="M460 561 H570" class="edge"/>
+  <rect x="475" y="524" width="82" height="27" class="label-bg"/>
+  <text x="516" y="543" text-anchor="middle" class="label">stream</text>
+  <rect x="570" y="520" width="120" height="82" class="box"/>
+  <text x="630" y="554" text-anchor="middle" class="box-title">Redis</text>
+  <text x="630" y="581" text-anchor="middle" class="box-sub">Streams</text>
+
+  <path d="M770 337 H850 V285 H1020 V206" class="edge-green edge-dash"/>
+  <rect x="855" y="250" width="160" height="27" class="label-bg"/>
+  <text x="935" y="269" text-anchor="middle" class="label">e-mails consentidos</text>
+
+  <text x="62" y="632" class="note">Segredos via variáveis de ambiente. Banco, Stripe, SMTP e publicação dependem de configuração externa.</text>
+</svg>
