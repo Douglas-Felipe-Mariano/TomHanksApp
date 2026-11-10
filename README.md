@@ -1,182 +1,151 @@
-# Tom Hanks App Catalog
+# AgendaLivre
 
-Projeto para a disciplina de Computação em Nuvem lecionada pelo professor @siriani.
+**AgendaLivre organiza horários, pacientes e lista de espera para consultórios independentes, ajudando a equipe a reduzir vagas ociosas.**
 
-Esta versão continua o catálogo da atividade 2 e separa a autenticação em um microsserviço interno. O `app` publica a aplicação; `auth-service`, `log-service` e Redis ficam somente na rede interna do Docker. O Compose também mapeia as portas 9000/9001 do MinIO para o host.
+Projeto individual da disciplina ISW055 — Introdução à Computação em Nuvem, do professor [@siriani](https://github.com/siriani). A implementação está na [branch agendalivre](https://github.com/Douglas-Felipe-Mariano/TomHanksApp/tree/agendalivre) deste repositório, conforme a decisão de reaproveitar o mesmo repositório. Isso é diferente da exigência de repositório novo publicada na atividade 9; não afirmamos que o fork foi realizado.
 
-## Documentação do sistema
+> Estado honesto: o código e a documentação desta branch não comprovam que a aplicação foi publicada na VM/subdomínio do curso, que o Stripe foi configurado no Dashboard, nem que issues ou evidências acadêmicas foram submetidas. Essas etapas dependem de acesso à infraestrutura e ao GitHub.
 
-A especificação funcional, a arquitetura, as regras de negócio extraídas do código e o modelo de dados estão em [DOCUMENTACAO.md](DOCUMENTACAO.md).
+## 1. A dor
 
-## Classificação SaaS, PaaS e IaaS
+Consultórios pequenos organizam horários em agendas, planilhas e conversas de WhatsApp que não compartilham um estado único. Uma falta ou cancelamento pode deixar um horário vazio, enquanto outra pessoa aguarda uma vaga. A equipe também precisa conferir manualmente quem pediu retorno ou prefere determinados períodos.
 
-| Camada | Componentes deste projeto | Responsabilidade |
+O produto não registra sintomas, diagnósticos, prontuários ou outras informações clínicas. A dor atendida é operacional: acompanhar agenda, contatos administrativos, preferências de horário e autorização para comunicações gerais. O custo atual em horas ou dinheiro ainda precisa ser medido com entrevistas; não usamos estimativas inventadas como evidência de mercado.
+
+## 2. Persona
+
+**Ana, 38 anos**, fisioterapeuta autônoma que atende em um consultório pequeno. Ela alterna entre atendimentos, mensagens e uma planilha para confirmar horários. Quando alguém cancela, precisa procurar conversas antigas para saber quem poderia ocupar a vaga. Quer uma visão simples da rotina e controle sobre quais pacientes autorizaram receber mensagens administrativas.
+
+## 3. Concorrentes e alternativas
+
+- **Planilha + agenda do celular:** flexíveis e baratas, mas exigem atualização manual e não mantêm uma lista de espera integrada.
+- **WhatsApp:** útil para conversar, mas difícil de usar como agenda compartilhada ou registro consistente de preferências e consentimentos.
+- **Doctoralia e iClinic:** produtos de gestão/atendimento estabelecidos, que devem ser avaliados em entrevistas e comparação de planos; o AgendaLivre começa com foco menor na agenda operacional de consultórios independentes.
+- **AgendaLivre:** protótipo acadêmico; não substitui software clínico, prontuário ou orientação profissional.
+
+## 4. Proposta de valor
+
+**Uma agenda operacional simples que conecta horários, lista de espera e retornos administrativos autorizados, sem misturar gestão de agenda com prontuário clínico.**
+
+## 5. Receita e planos Stripe
+
+| Plano | Preço de referência | Limites e recursos |
+| --- | ---: | --- |
+| Free | R$ 0/mês | Agenda, pacientes e lista de espera; até 3 novos agendamentos por mês. |
+| Pro | R$ 39,90/mês | Remove o limite de novos agendamentos e habilita sugestões administrativas de retorno, encaixes da lista de espera e até 200 e-mails autorizados por mês. |
+
+O checkout usa um preço mensal em BRL criado no Stripe **Test mode**. O identificador do preço é definido em `STRIPE_PRO_PRICE_ID`; o valor efetivo depende do preço criado na conta Stripe e deve coincidir com o modelo acima. Nenhum dado de cartão passa pelo AgendaLivre. Upgrade, downgrade e cancelamento devem ocorrer pelo Customer Portal; a API atualiza o plano somente por webhooks validados.
+
+## 6. Métricas de sucesso
+
+- Consultórios cadastrados e equipes ativas.
+- Horários criados e taxa de ocupação da agenda.
+- Pessoas contatadas a partir da lista de espera e retornos administrativos concluídos.
+- Conversão Free → Pro, assinaturas Pro ativas, cancelamentos e retenção.
+- MRR de teste calculado a partir das assinaturas Pro ativas sincronizadas pelo webhook.
+
+As métricas devem ser observadas com dados de demonstração e consentimento adequado, sem incluir conteúdo clínico.
+
+## 7. Lean Canvas
+
+| Bloco | Hipótese inicial |
+| --- | --- |
+| Problema | Cancelamentos deixam horários vagos; dados de agenda ficam dispersos; a equipe procura manualmente quem aguarda uma vaga. |
+| Segmentos de clientes | Consultórios independentes e pequenos, inicialmente com uma equipe enxuta e sem sistema integrado de agenda. |
+| Proposta única de valor | Agenda e lista de espera simples, com controle administrativo de consentimento, sem prontuário clínico. |
+| Solução | Agenda com prevenção de sobreposição; cadastro mínimo de pacientes e lista de espera; sugestões de ocupação e mensagens consentidas no Pro. |
+| Canais | Indicação entre profissionais, comunidades locais, demonstrações e landing page pública. |
+| Fontes de receita | Assinatura Pro mensal de referência R$ 39,90 via Stripe; plano Free para experimentação. |
+| Estrutura de custos | VM/containers, MariaDB, Redis, MinIO, e-mail transacional, taxas de pagamento e manutenção. |
+| Métricas-chave | Ativação, consultas por mês, ocupação, conversão, MRR, cancelamento e retenção. |
+| Vantagem injusta | Ainda não comprovada. A hipótese é conhecimento próximo da rotina de consultórios pequenos; precisa ser validada com entrevistas. |
+
+## 8. O que foi reaproveitado
+
+| Peça do projeto-base | Papel no AgendaLivre |
+| --- | --- |
+| Frontend React/Vite | Landing page pública, autenticação e painel de agenda. |
+| API Express | CRUD do domínio, autorização por papel e isolamento por consultório. |
+| Auth Service + JWT | Cadastro, login, recuperação de senha e identidade da conta. |
+| RBAC | Proprietário, recepção e profissional; o papel da equipe fica no vínculo do consultório e é conferido na API. `admin` é papel separado para métricas e auditoria. |
+| MariaDB | Usuários, clínicas, equipe, pacientes, consultas, lista de espera, consentimentos e estado Stripe. |
+| Log Service + Redis Streams | Eventos de negócio e auditoria, com consulta administrativa protegida. |
+| MinIO | Object storage para logo público do consultório; dados de pacientes não são armazenados no bucket público. |
+| Stripe | Checkout recorrente Pro, webhooks idempotentes, Customer Portal e estado local usado pela API. |
+| Docker Compose | Execução conjunta de app, auth, logs, Redis e MinIO; MariaDB é externo e configurado por ambiente. |
+
+## Arquitetura
+
+```mermaid
+flowchart LR
+  browser[ navegador React ] -->|HTTPS /api| app[ app Express + frontend ]
+  app -->|proxy de autenticação| auth[ auth-service ]
+  app -->|usuários, clínica e billing| db[(MariaDB)]
+  auth -->|contas e reset tokens| db
+  app -->|eventos| logs[ log-service ]
+  logs --> redis[(Redis Streams)]
+  app -->|logo do consultório| minio[(MinIO)]
+  app -->|Checkout hospedado| stripe[Stripe Test mode]
+  stripe -->|webhook assinado| app
+  app -->|e-mails consentidos| smtp[SMTP]
+```
+
+As consultas do domínio usam `clinic_id`; o proprietário da clínica é obtido no servidor e os papéis de recepção/profissional são resolvidos pela tabela `clinic_members`. Usuários não escolhem papel privilegiado no cadastro. O webhook valida a assinatura Stripe sobre o corpo original e registra o ID do evento em `stripe_events` na mesma transação que atualiza o estado da conta.
+
+## API principal
+
+| Método e rota | Acesso | Uso |
 | --- | --- | --- |
-| **SaaS** | Tom Hanks App; Stripe; TMDB; Mailtrap | O app é entregue ao usuário pelo navegador. Stripe, TMDB e Mailtrap são serviços de terceiros consumidos por API; Mailtrap é usado para e-mail de desenvolvimento. |
-| **PaaS** | Camada de execução dos containers `app`, `auth-service`, `log-service`, Redis e MinIO, iniciados pelo Docker Compose/Portainer | Em termos didáticos, os containers representam a plataforma de execução da aplicação. Tecnicamente, não há PaaS gerenciado configurado: Docker e runtime continuam sob administração da equipe. |
-| **IaaS** | VM Proxmox/Ubuntu usada pela infraestrutura da disciplina para hospedar Docker e a stack | A equipe administra o sistema operacional, Docker, rede, volumes e implantação dos containers. O contrato/provedor específico da VM não está declarado nos arquivos do repositório. |
+| `POST /api/auth/register`, `POST /api/auth/login` | Público | Cadastro e sessão. Toda nova conta começa como proprietária. |
+| `GET /api/clinic/dashboard` | Membro | Visão de agenda, plano, papel e métricas do consultório. |
+| `PUT /api/clinic/settings` | Proprietário | Nome e horário de funcionamento. |
+| `GET/POST/DELETE /api/clinic/members` | Proprietário | Lista, vincula conta existente e remove membro da equipe. |
+| `POST /api/clinic/logo` | Proprietário | Upload validado de logo para MinIO. |
+| `GET/POST /api/patients` | Membro / proprietário ou recepção para criar | Consultar ou cadastrar dados mínimos de contato. |
+| `GET/POST /api/appointments`, `GET/PUT/DELETE /api/appointments/:id`, `PATCH /api/appointments/:id/status` | Membro | Agenda; o servidor bloqueia sobreposição, limita o Free e restringe profissionais aos próprios atendimentos. DELETE é cancelamento lógico. |
+| `GET/POST /api/waitlist` | Membro / proprietário ou recepção para alterar | Lista de espera administrativa. |
+| `GET /api/premium/reactivation-candidates`, `POST /api/premium/campaigns` | Pro; campanha só proprietário | Sugestões não clínicas e mensagens gerais para contatos com consentimento ativo. |
+| `POST /api/billing/checkout`, `POST /api/billing/portal` | Proprietário | Checkout recorrente e portal hospedado pelo Stripe. |
+| `POST /api/billing/webhook` | Stripe | Eventos assinados e deduplicados. |
+| `GET /api/admin/billing/summary`, `GET /api/admin/logs` | `admin` | Contas por plano, assinaturas ativas, MRR de teste e auditoria recente. |
+| `GET /api/public/unsubscribe` | Público, HMAC | Retira consentimento usando link assinado. |
 
-O MariaDB é externo ao Docker Compose e configurado por `DB_HOST`, `DB_USER`, `DB_PASS` e `DB_NAME`; sem identificar onde ele é executado, não é possível classificá-lo com segurança como banco gerenciado (PaaS) ou como serviço sobre IaaS. O MinIO e o Redis deste projeto são containers próprios, não SaaS de terceiros.
+## Privacidade e segurança
 
-## Relatório P1
+- Não registrar conteúdo clínico; limitar o cadastro a nome e contato necessários à agenda.
+- Consentimento de comunicação é separado do cadastro, revogável e verificado no servidor no momento do envio. As sugestões de retorno são administrativas, não recomendações clínicas.
+- Consultas e alterações são limitadas ao consultório associado à sessão; papéis e limites são verificados na API, não apenas na interface.
+- Logo é imagem pública de identidade do consultório. O bucket MinIO configurado pelo projeto tem leitura pública; nunca grave nele documentos ou dados de pacientes.
+- Segredos devem existir somente nas variáveis do ambiente/stack. `.env.example` contém nomes e exemplos, não chaves válidas.
+- Antes de produção são necessários revisão de LGPD, política de retenção/exclusão, verificação de e-mail, rate limiting, backup/restore testado, TLS, gestão de segredos e revisão independente de segurança. A implementação atual é acadêmica e não deve ser usada como prontuário.
 
-- [Relatório bimestral em PDF](docs/P1_ISW055_Douglas_Mariano.pdf)
-- [Fonte editável em Typst](docs/P1_ISW055_Douglas_Mariano.typ)
+## Rodar localmente
 
-## O que mudou
+1. Configure um MariaDB acessível e crie o banco indicado por `DB_NAME` (padrão `agendalivre`). Aplique `database/create.sql` numa base nova.
+2. Copie `.env.example` para `.env`, configure banco, JWT, URLs, MinIO e SMTP. Para checkout, informe somente `sk_test_...`, `whsec_...` e o ID de um preço recorrente mensal em modo de teste.
+3. Inicie a stack com Docker Compose. O backend executa migrações de assinatura e clínica no startup; o auth-service verifica os papéis e tokens de recuperação.
+4. Para desenvolvimento separado, use `npm install` e `npm run dev` em `backend/`, `auth-service/` e `frontend/`; use as URLs e serviços compatíveis definidos nos arquivos `.env.example`.
 
-- `app` continua público e serve o catálogo + frontend.
-- `auth-service` foi criado para login, cadastro, validação de JWT, role e reset de senha.
-- O link de recuperação de senha expira em 30 minutos e é validado antes da troca da senha.
-- O envio de e-mail está preparado para Mailtrap no desenvolvimento.
+### Configurar Stripe Test mode
 
-## Estrutura do projeto
+1. Crie o produto AgendaLivre Pro com preço recorrente mensal em BRL e valor de referência R$ 39,90; copie o ID para `STRIPE_PRO_PRICE_ID`.
+2. Configure o Customer Portal em Test mode para permitir ao cliente gerenciar/cancelar a assinatura.
+3. Registre `https://SEU_DOMINIO/api/billing/webhook` para `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted` e `invoice.payment_failed`.
+4. Salve a chave secreta de teste e o segredo do endpoint em variáveis da stack. Não versione valores reais.
+5. Aplique o cartão de teste `4242 4242 4242 4242`, uma data futura e qualquer CVC. A confirmação local depende da entrega do webhook; retornar do checkout não concede Pro.
 
-- `backend/`: catálogo, favoritos, comentários, proxy interno para autenticação e agregador de rotas de admin
-- `auth-service/`: microsserviço de autenticação e recuperação de senha
-- `log-service/`: microsserviço de auditoria com persistência em Redis
-- `frontend/`: aplicação web em React (Vite)
-- `database/`: scripts SQL para o MariaDB
+### Limites dos planos
 
-## Upload e Perfil (MinIO)
+No Free, a criação do quarto agendamento do mês é recusada com HTTP 403, código `PLAN_LIMIT_REACHED`, limite e instrução para upgrade. A verificação e a escrita são serializadas pelo registro da clínica para evitar ultrapassar a franquia em requisições concorrentes. Pro remove esse limite; campanhas continuam limitadas a 200 envios consentidos por mês.
 
-Na atividade 6, o catálogo virou uma rede social. Cada usuário tem sua própria página de perfil, que exibe os seus dados e lista seus filmes favoritos.
+## Camadas de nuvem
 
-- **MinIO**: As fotos de perfil não são guardadas no banco de dados, mas sim no MinIO (Object Storage compatível com S3). O banco armazena apenas a URL pública da foto.
-- **Segurança (Edição Própria)**: Apenas o dono do perfil pode alterar sua foto e sua bio. Essa validação ocorre no backend: mesmo que o frontend mande requisição para editar outro ID, o `req.userId` é quem prevalece e um acesso negado retorna HTTP 403.
-- **Decisão sobre visibilidade do Bucket (Leitura Pública vs URL pré-assinada)**:
-  Optamos por configurar o bucket de perfis com **leitura pública** (`publicPolicy`). Como as fotos de perfil são exibidas em vários locais (como avatares em comentários ou listas) e devem carregar instantaneamente, URLs pré-assinadas introduziriam gargalos de performance e processamento desnecessários (precisar gerar a URL na API em toda requisição), além de atrapalhar o cache do navegador. Imagens de avatar de redes sociais geralmente são de natureza pública, o que torna o trade-off pela leitura pública totalmente justificável para este caso.
+| Camada | Componentes | Observação |
+| --- | --- | --- |
+| SaaS | AgendaLivre; Stripe, SMTP e serviços externos consumidos por API | O AgendaLivre é o produto de software entregue ao consultório. |
+| PaaS (didático) | Containers Docker/Compose e serviços de aplicação | Runtime auto-hospedado, não PaaS gerenciado; equipe administra Docker e configuração. |
+| IaaS | VM que hospeda Docker e a stack do curso | Sistema operacional, rede, volumes e implantação dependem da infraestrutura do curso. |
 
-## Plano Premium (Stripe em modo de teste)
+## Evidências e itens ainda externos ao código
 
-O Plano Premium é uma compra única de teste (R$ 9,90 no produto/preço configurado no Stripe). No plano Free, cada conta pode manter até **5 favoritos**; o Premium remove esse limite. A API consulta o plano no MariaDB em cada inclusão, então alterar o estado no navegador não concede o benefício.
-
-- `POST /api/billing/checkout` cria uma sessão hospedada pelo Stripe usando o `STRIPE_PREMIUM_PRICE_ID` configurado no servidor. O preço e o usuário não são aceitos do cliente.
-- `POST /api/billing/webhook` valida a assinatura Stripe sobre o corpo HTTP original. Só um evento `checkout.session.completed` com pagamento confirmado ativa `premium`; a tabela `stripe_events` evita processar o mesmo evento mais de uma vez.
-- `GET /api/billing/status` informa o plano consultado no banco. O retorno do Checkout sozinho não ativa o benefício: a interface aguarda a confirmação do webhook.
-- O banco guarda somente o identificador do cliente Stripe e o estado/data de ativação Premium. Número de cartão, CVV e validade nunca passam pelo app.
-
-### Configurar o Stripe para teste
-
-1. No Dashboard do Stripe, ative **Test mode** e crie o produto `Plano Premium` com preço único de R$ 9,90 (não recorrente). Copie o ID `price_...` desse preço.
-2. Preencha `STRIPE_SECRET_KEY` com uma chave `sk_test_...` e `STRIPE_PREMIUM_PRICE_ID` com o ID criado. O backend recusa chave que não comece com `sk_test_`.
-3. Configure `STRIPE_SUCCESS_URL` e `STRIPE_CANCEL_URL` com as URLs públicas do frontend. Em desenvolvimento com Vite, use `http://localhost:5173/?checkout=success` e `http://localhost:5173/?checkout=cancelled`.
-4. Configure o endpoint de webhook `https://SEU_DOMINIO/api/billing/webhook` no Stripe para o evento `checkout.session.completed`; guarde o segredo `whsec_...` em `STRIPE_WEBHOOK_SECRET`. Para teste local, use o Stripe CLI para encaminhar eventos a `localhost:3000/api/billing/webhook` e use o segredo de listener apresentado pelo CLI.
-5. Copie os nomes/valores de exemplo de `.env.example` para o ambiente local ou para as variáveis da stack no Portainer. Nunca coloque chaves reais no Git.
-
-A migração `database/migrate-premium.sql` pode ser executada manualmente em uma base existente; o backend também verifica/cria essas colunas e a tabela de eventos ao iniciar. Para recriar uma base nova, use `database/create.sql`. O projeto requer MariaDB 10.6 ou superior para `ADD COLUMN IF NOT EXISTS`.
-
-### Verificação da entrega
-
-O cartão de teste do Stripe `4242 4242 4242 4242` simula uma compra aprovada; use uma data futura e qualquer CVC. Depois que o webhook for processado, confira `usuarios.premium = 1`, a disponibilidade de favoritos acima de cinco e a linha correspondente em `stripe_events`. O endpoint administrativo de logs também registra `ativacao_plano_premium`.
-
-## Logs e Auditoria (Redis Streams)
-
-O sistema conta com uma trilha de auditoria para monitorar as ações. 
-- **Persistência**: Utilizamos o **Redis Streams** (`XADD` e `XRANGE`). A escolha do Streams se justifica por ser uma estrutura desenhada nativamente para append-only de eventos ordenados no tempo, o que atende perfeitamente ao caso de uso de auditoria (onde se escreve muito e a ordem é vital), superando a complexidade de gerenciar IDs manuais que uma simples lista (List) exigiria.
-- **Eventos Monitorados**: Login (sucesso e falha), logout, criação/remoção de favoritos, criação/remoção de comentários (incluindo moderação) e tentativas de ações negadas por permissão (HTTP 403).
-- **Consulta**: Administradores podem visualizar os últimos eventos com `GET /api/admin/logs?limit=50`, autenticado com Bearer token. O parâmetro `limit` aceita de 1 a 500 (padrão 50); os eventos são devolvidos do mais recente para o mais antigo. Usuários comuns recebem 403.
-- **Rede**: `auth-service`, `log-service` e Redis são acessíveis pela rede interna do Docker Compose. O `app` publica a aplicação; MinIO também mapeia API/console nas portas 9000/9001 do host, conforme `docker-compose.yml`.
-
-### Roteiro de demonstração
-
-1. Inicie os serviços com `docker compose up -d --build` e crie/promova uma conta administradora conforme a seção de RBAC abaixo.
-2. Entre no frontend com uma conta comum, favorite um filme e publique um comentário.
-3. Para demonstrar uma negação por permissão, com a conta comum tente apagar um comentário pertencente a outro usuário. A API deve responder `403` e registrar `tentativa_negada_403_apagar_comentario`.
-4. Use **Sair** no frontend. O sistema chama `POST /api/auth/logout` antes de limpar a sessão e registra `logout` no stream.
-5. Entre com a conta admin e consulte `GET /api/admin/logs?limit=50` usando o token dessa conta. A consulta mostra `usuario_id`, `acao` e `timestamp`; como vem em ordem mais recente primeiro, o login admin aparece no topo, seguido pelos eventos anteriores.
-6. Tente a mesma consulta usando uma conta comum: deve receber HTTP `403`.
-
-Exemplo de consulta da demonstração (substitua o token pelo JWT de uma conta admin):
-
-```bash
-curl -H "Authorization: Bearer SEU_TOKEN_ADMIN" "http://localhost:3000/api/admin/logs?limit=50"
-```
-
-Após executar o roteiro, capture a resposta JSON da consulta autenticada como admin no terminal ou no navegador e anexe a captura de tela à entrega. A captura depende de uma execução local com usuários e dados reais; ela não é simulada neste repositório.
-
-## Como rodar com Docker Compose
-
-1. Copie o arquivo `.env.example` para `.env` e preencha as variáveis.
-2. Se o banco já foi criado na atividade 2, rode primeiro `database/migrate-auth.sql` uma vez.
-3. Se for uma instalação nova, importe `database/create.sql`.
-4. Suba os containers com:
-
-O `auth-service` executa a migração automaticamente na inicialização, então a coluna `role` e a tabela `reset_tokens` são criadas/ajustadas assim que o serviço sobe.
-
-```bash
-docker compose up -d --build
-```
-
-## Variáveis importantes
-
-- `RESERVED_PORT`: porta pública do catálogo no Portainer.
-- `APP_PUBLIC_URL`: URL pública do catálogo, usada no link do e-mail.
-- `SMTP_*`: credenciais do Mailtrap no desenvolvimento.
-- `JWT_SECRET`: segredo usado somente pelo `auth-service`.
-
-## Mailtrap no desenvolvimento
-
-1. Crie uma inbox no Mailtrap.
-2. Copie o host, porta, usuário e senha de SMTP para as variáveis `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` e `SMTP_PASS`.
-3. Ajuste `EMAIL_FROM` se quiser um remetente mais claro no teste.
-
-## Papel de usuário e Permissões (RBAC)
-
-O controle de acesso baseado em papéis (RBAC) está implementado com os papéis `usuario` e `admin`. 
-
-### Permissões por Papel:
-- **`usuario` (Usuário Comum):**
-  - Autenticar-se (login) e gerenciar sua senha.
-  - Pesquisar filmes no catálogo e ver detalhes.
-  - Adicionar, listar e remover filmes aos **seus próprios** favoritos.
-  - Adicionar comentários e remover **somente os seus próprios** comentários.
-  
-- **`admin` (Administrador):**
-  - Possui todas as permissões do `usuario`.
-  - **Ação Exclusiva de Moderação:** Pode remover o comentário de **qualquer usuário**.
-
-Para demonstrar o papel de administrador, promova um usuário no MariaDB:
-
-```sql
-UPDATE usuarios SET role = 'admin' WHERE email = 'seu-email@exemplo.com';
-```
-
-## Padrão de Arquitetura de Autorização (Padrão A ou B?)
-
-**Resposta: Padrão A (Enforcement Centralizado)**
-
-**Justificativa:** Atualmente, o backend faz uma chamada de rede (HTTP GET `/auth/me`) para o `auth-service` em toda requisição protegida, centralizando a validação do JWT (Padrão A). Porém, `/auth/me` devolve as claims do token e não consulta novamente o papel no MariaDB. Assim, a alteração de papel não é imediata para tokens já emitidos: o JWT atual pode permanecer válido por até 24 horas.
-
-**O que mudaria se fosse para o Padrão B?**
-Para adotar o Padrão B, o middleware do backend deixaria de fazer a requisição HTTP (`axios.get`) para o `auth-service`. Em vez disso, verificaria a assinatura do JWT localmente (`jwt.verify`) e leria a claim de `role` do token. Isso reduziria a latência, mas manteria a mesma limitação de atualização do papel até a emissão de outro token; para revogação imediata seria necessário consultar estado atual no banco ou manter uma estratégia de revogação.
-
-## Fluxo de recuperação de senha
-
-1. O usuário informa o e-mail na tela de login.
-2. O `auth-service` cria um token único em `reset_tokens` com expiração de 30 minutos.
-3. O e-mail chega pelo Mailtrap no desenvolvimento.
-4. O link abre a página `/reset-password` no catálogo e valida o token antes de trocar a senha.
-5. Depois de usado, ou após 30 minutos, o mesmo token é recusado.
-
-## Execução local sem Docker
-
-Se você quiser testar separadamente:
-
-```bash
-cd backend
-npm install
-npm run dev
-```
-
-```bash
-cd auth-service
-npm install
-npm run dev
-```
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
+Não há afirmação de deploy concluído, checkout realmente executado, webhook recebido em conta real de teste, prints, issues de entrega, novo repositório/fork ou PDF P2. Esses artefatos devem ser criados e verificados nos respectivos serviços antes de uma entrega acadêmica. A atividade 9 pede repositório novo; esta branch segue a decisão de manter o mesmo repositório, portanto há uma divergência que precisa ser resolvida com a docente antes de declarar aquela etapa como atendida.
